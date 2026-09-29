@@ -1,0 +1,10 @@
+{
+  "name": "kanastra-familia",
+  "version": "1.0.0",
+  "description": "Kanastra en línea para jugar en familia, con nuestras reglas.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "license": "UNLICENSED",
+  "private": true
+}

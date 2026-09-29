@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: kanastra-familia
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/ping
+    autoDeploy: true
