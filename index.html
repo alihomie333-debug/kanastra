@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#113527">
+<meta name="description" content="La kanastra de la familia, con nuestras reglas. Cuatro jugadores en parejas, cada uno desde su celular.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kanastra">
+<title>Kanastra de la Familia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mesa de paño color cedro: marcador arriba, tablero al centro, tu mano abajo. Un solo look oscuro, a propósito. */
+:root {
+  --felt: #113527; --felt-hi: #1a4d38; --rail: #0a2119; --panel: #0e2c20; --line: #2b5a45;
+  --ink: #f2eee4; --muted: #a6bfb1; --cedar: #52b57f; --red: #e2323c; --gold: #eac46b;
+  --paper: #fbf8f1; --card-ink: #1c1c1c; --card-red: #c41f2a;
+  --display: "Reem Kufi", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cw: clamp(40px, 11.5vw, 60px);
+  color-scheme: dark;
+}
+html, body { background: var(--felt); color: var(--ink); }
+body { font-family: var(--body); font-size: 15px; line-height: 1.45; min-height: 100%; background: var(--felt); }
+.wrap::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(120% 70% at 50% 0%, var(--felt-hi), transparent 70%); }
+.wrap { position: relative; isolation: isolate; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 40px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* marca */
+.brand { display: flex; align-items: center; gap: 10px; }
+.flag { width: 30px; height: 20px; border-radius: 3px; flex: none; position: relative; overflow: hidden;
+  background: linear-gradient(var(--red) 0 25%, var(--paper) 25% 75%, var(--red) 75%); }
+.flag::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 9px; transform: translate(-50%, -52%);
+  background: var(--cedar); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.wordmark { font-family: var(--display); font-weight: 700; letter-spacing: .08em; font-size: 20px; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding-block: 4px 12px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.toptools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* botones */
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 9px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover:not(:disabled) { border-color: var(--cedar); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--cedar); border-color: var(--cedar); color: #06170f; }
+.btn.danger { border-color: var(--red); color: #ffd9db; }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: #1d1606; }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; background: var(--rail); white-space: nowrap; }
+.chip.gold { border-color: var(--gold); color: var(--gold); }
+.chip.red { border-color: var(--red); color: #ffc9cc; }
+.chip.green { border-color: var(--cedar); color: #c6f0d8; }
+.label { font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* cartas */
+.card { width: var(--cw); height: calc(var(--cw) * 1.4); border-radius: 7px; background: var(--paper); color: var(--card-ink);
+  border: 1px solid rgba(0,0,0,.3); box-shadow: 0 2px 6px rgba(0,0,0,.35); position: relative; flex: none; padding: 0;
+  font-family: var(--display); transition: transform .12s ease, box-shadow .12s ease; }
+button.card { cursor: pointer; }
+.card .cr { position: absolute; top: 5%; left: 9%; font-size: calc(var(--cw) * .34); font-weight: 700; line-height: 1; }
+.card .cs { position: absolute; left: 0; right: 0; bottom: 10%; text-align: center; font-size: calc(var(--cw) * .52); line-height: 1; }
+.card.red { color: var(--card-red); }
+.card.wild { box-shadow: inset 0 0 0 2px var(--gold), 0 2px 6px rgba(0,0,0,.35); }
+.card.joker { background: linear-gradient(160deg, var(--paper) 55%, #e8f3ec); color: #1d6b43; }
+.card.joker .cr { font-size: calc(var(--cw) * .26); letter-spacing: .04em; }
+.card.sel { transform: translateY(-12px); box-shadow: 0 0 0 3px var(--gold), 0 8px 14px rgba(0,0,0,.45); }
+.card.back { background: repeating-linear-gradient(135deg, var(--red) 0 6px, #b8222b 6px 12px); border: 3px solid var(--paper); }
+.card.back::after { content: ""; position: absolute; inset: 30% 30%; background: var(--cedar); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.card.slot { background: transparent; border: 2px dashed var(--line); box-shadow: none; }
+.mini { --cw: 30px; }
+.mini .card { border-radius: 4px; }
+.mini .card .cr { font-size: 11px; top: 3px; left: 3px; }
+.mini .card .cs { font-size: 13px; bottom: 3px; }
+.mini .card.joker .cr { font-size: 8.5px; }
+
+/* lobby */
+.hero { padding-block: 26px 18px; display: grid; gap: 8px; }
+.hero h1 { font-size: clamp(34px, 8vw, 58px); letter-spacing: .06em; line-height: 1; }
+.hero p { margin: 0; max-width: 60ch; color: var(--muted); }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.field { display: grid; gap: 6px; }
+input[type=text] { font: inherit; background: var(--rail); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--ink); width: 100%; box-sizing: border-box; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row > input { flex: 1 1 140px; min-width: 0; }
+.tables { display: grid; gap: 8px; }
+.trow { display: flex; align-items: center; gap: 12px; justify-content: space-between; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--rail); }
+.trow .code { font-family: var(--display); font-size: 20px; letter-spacing: .1em; }
+.trow .info { min-width: 0; flex: 1; }
+.trow .names { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* sala de espera */
+.seatcross { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-areas: ". s2 ." "s1 mid s3" ". s0 ."; gap: 10px; align-items: center; max-width: 620px; margin: 8px auto; }
+.seatbox { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--rail); display: grid; gap: 6px; justify-items: center; text-align: center; min-height: 82px; align-content: center; min-width: 0; }
+.seatbox .nm { font-weight: 600; overflow-wrap: anywhere; }
+.seatbox.teamA { border-color: var(--cedar); }
+.seatbox.teamB { border-color: var(--red); }
+.midcode { text-align: center; }
+.midcode .big { font-family: var(--display); font-size: clamp(26px, 7vw, 40px); letter-spacing: .14em; }
+
+/* juego */
+.game { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .game { grid-template-columns: minmax(0, 1fr); } }
+.mainc { display: grid; gap: 14px; min-width: 0; }
+.side { display: grid; gap: 14px; min-width: 0; }
+.score { display: flex; gap: 8px; flex-wrap: wrap; }
+.sc { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--rail); min-width: 128px; }
+.sc .v { font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; }
+.bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--cedar); }
+.sc.b .bar i { background: var(--red); }
+.plates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.plates.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 520px) { .plates.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.plate { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--panel); display: grid; gap: 4px; min-width: 0; position: relative; }
+.plate.turn { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(234,196,107,.25); }
+.plate .nm { font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.plate .nm span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 520px) { .plate { padding: 7px 8px; } .plate .nm span { white-space: normal; overflow-wrap: anywhere; } .hide-sm { display: none; } }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none; }
+.dot.on { background: var(--cedar); }
+.backs { display: flex; align-items: center; gap: 6px; }
+.backs .card { --cw: 16px; border-width: 2px; }
+.backs .card::after { inset: 25%; }
+.center { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 14px 18px; align-items: center; background: rgba(0,0,0,.18); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+@media (max-width: 520px) { .center { grid-template-columns: auto auto; } .center .status { grid-column: 1 / -1; } }
+.pilebox { display: grid; gap: 4px; justify-items: center; }
+.pilebox .stack { position: relative; }
+.status { display: grid; gap: 6px; min-width: 0; }
+.status .big { font-family: var(--display); font-size: 19px; }
+.teams { display: grid; gap: 12px; }
+.team { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--panel); display: grid; gap: 10px; min-width: 0; }
+.team.us { border-color: rgba(82,181,127,.6); }
+.team .head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
+.team .head h3 { font-size: 18px; }
+.melds { display: flex; flex-wrap: wrap; gap: 10px; }
+.meld { display: grid; gap: 4px; justify-items: start; border: 1px solid transparent; border-radius: 10px; padding: 6px; background: rgba(0,0,0,.18); }
+button.meld { cursor: pointer; text-align: left; }
+button.meld.yes { border-color: var(--cedar); background: rgba(82,181,127,.14); }
+button.meld.no { opacity: .55; }
+.meld.kan { border-color: rgba(234,196,107,.5); }
+.fan { display: flex; padding-left: 14px; }
+.fan .card { margin-left: -14px; }
+.meld .tag { font-size: 12px; color: var(--muted); }
+.meld.kan .tag { color: var(--gold); font-weight: 600; }
+.r3 { display: flex; gap: 4px; align-items: center; }
+.empty { color: var(--muted); font-size: 13.5px; }
+
+.me { border: 1px solid var(--line); border-radius: 16px; padding: 12px; background: var(--rail); display: grid; gap: 10px; min-width: 0; }
+.me.turn { border-color: var(--gold); }
+.mehead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.hand { display: flex; flex-wrap: wrap; row-gap: 10px; padding: 14px 0 2px calc(var(--cw) * .42); }
+.hand .card { margin-left: calc(var(--cw) * -.42); }
+@media (min-width: 760px) { .hand { padding-left: calc(var(--cw) * .22); } .hand .card { margin-left: calc(var(--cw) * -.22); } }
+.hint { font-size: 14px; color: var(--muted); min-height: 1.4em; }
+.hint.ok { color: #c6f0d8; }
+.hint.bad { color: #ffc0c4; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.draft { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; border: 1px dashed var(--gold); border-radius: 10px; padding: 8px; }
+.draft .meld { position: relative; }
+
+.result { border: 1px solid var(--gold); border-radius: 14px; background: var(--panel); padding: 14px; display: grid; gap: 12px; }
+.tablewrap { overflow-x: auto; }
+table.res { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.res th, table.res td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.res th:first-child, table.res td:first-child { text-align: left; }
+table.res tr.tot td { font-weight: 700; font-family: var(--display); font-size: 16px; border-bottom: 0; }
+.log { display: grid; gap: 4px; max-height: 320px; overflow-y: auto; font-size: 13.5px; }
+.log div { padding: 4px 0; border-bottom: 1px solid rgba(43,90,69,.5); color: var(--muted); }
+.log div:last-child { color: var(--ink); }
+
+/* capas */
+.overlay { position: fixed; inset: 0; background: rgba(4,14,10,.72); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; max-width: 720px; width: 100%; max-height: 86vh; overflow-y: auto; padding: 18px; box-sizing: border-box; display: grid; gap: 12px; }
+.sheet h2 { font-size: 24px; }
+.sheet h3 { font-size: 17px; margin-top: 6px; color: var(--gold); }
+.sheet p, .sheet li { max-width: 68ch; }
+.sheet ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: #10261c; padding: 10px 16px; border-radius: 10px; font-weight: 600; z-index: 30; max-width: calc(100% - 32px); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+.busy { opacity: .7; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+<style>*{box-sizing:border-box}html,body{margin:0}.wrap{padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}</style>
+</head>
+<body>
+
+
+<div class="wrap" id="app">
+  <div class="topbar"><div class="brand"><span class="flag" aria-hidden="true"></span><span class="wordmark">KANASTRA</span></div></div>
+  <p class="muted">Abriendo la mesa…</p>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="layer"></div>
+
+<script>
+/* ===== Motor de reglas: Kanastra de la familia ===== */
+const SUITS = ['♠','♥','♦','♣'];
+const SUIT_NAMES = ['picas','corazones','diamantes','tréboles'];
+const WIN = 5000, OPEN = 80, HAND = 15;
+class GameErr extends Error {}
+const fail = m => { throw new GameErr(m); };
+
+const isJoker = c => c >= 104;
+const suit = c => isJoker(c) ? -1 : Math.floor((c % 52) / 13);
+const rank = c => isJoker(c) ? 0 : (c % 13) + 1;
+const isJoly = c => !isJoker(c) && rank(c) === 2;
+const isWild = c => isJoker(c) || isJoly(c);
+const isRedSuit = c => suit(c) === 1 || suit(c) === 2;
+const isRed3 = c => !isJoker(c) && rank(c) === 3 && isRedSuit(c);
+const isBlack3 = c => !isJoker(c) && rank(c) === 3 && !isRedSuit(c);
+const runIdx = r => r === 1 ? 10 : r - 4;           // 4..K -> 0..9, As -> 10
+const RANK_LABEL = {1:'A',11:'J',12:'Q',13:'K'};
+const rankLabel = c => isJoker(c) ? 'JK' : (RANK_LABEL[rank(c)] || String(rank(c)));
+const cardName = c => isJoker(c) ? 'Joker' : rankLabel(c) + SUITS[suit(c)];
+function val(c) {
+  if (isJoker(c)) return 50;
+  const r = rank(c);
+  if (r === 1 || r === 2) return 20;
+  if (r === 3) return 0;
+  return r <= 7 ? 5 : 10;
+}
+const sum = cs => cs.reduce((a, c) => a + val(c), 0);
+const teamOf = seat => seat % 2;
+const hk = seat => 's' + seat;
+const tk = t => 't' + t;
+
+/* Analiza un conjunto de cartas como combinación. forced = 'run' | 'group' | undefined */
+function analyze(cards, forced) {
+  if (cards.length < 3) return { err: 'Una combinación necesita al menos 3 cartas.' };
+  const wilds = cards.filter(isWild), nat = cards.filter(c => !isWild(c));
+  if (wilds.length > 1) return { err: 'Máximo un comodín por combinación.' };
+  if (nat.some(c => rank(c) === 3)) return { err: 'Los 3 no se bajan en combinaciones.' };
+  if (nat.length < 2) return { err: 'Necesitas al menos 2 cartas naturales.' };
+  const w = wilds[0];
+  const sameRank = nat.every(c => rank(c) === rank(nat[0]));
+  if (forced !== 'run' && sameRank) {
+    return { type: 'group', rank: rank(nat[0]), clean: w === undefined || isJoker(w) };
+  }
+  if (forced === 'group') return { err: 'En un grupo todas las cartas son del mismo número.' };
+  const s = suit(nat[0]);
+  if (!nat.every(c => suit(c) === s)) return { err: 'Una escalera va toda del mismo palo.' };
+  const idx = nat.map(c => runIdx(rank(c))).sort((a, b) => a - b);
+  for (let i = 1; i < idx.length; i++) if (idx[i] === idx[i - 1]) return { err: 'Una escalera no repite números.' };
+  const span = idx[idx.length - 1] - idx[0] + 1, gaps = span - idx.length;
+  if (gaps > 1 || gaps > wilds.length) return { err: 'A esa escalera le faltan cartas en el medio.' };
+  if (gaps === 0 && w !== undefined && span + 1 > 11) return { err: 'No hay espacio para el comodín en esa escalera.' };
+  const clean = w === undefined || isJoker(w) || suit(w) === s;
+  return { type: 'run', suit: s, clean, lo: idx[0], hi: idx[idx.length - 1] };
+}
+function describe(a) {
+  if (a.err) return a.err;
+  const kind = a.type === 'group'
+    ? 'Grupo de ' + (RANK_LABEL[a.rank] || a.rank)
+    : 'Escalera de ' + SUIT_NAMES[a.suit];
+  return kind + (a.clean ? ' · limpia' : ' · sucia');
+}
+/* Orden para mostrar una combinación */
+function arrange(m) {
+  const a = analyze(m.cards, m.type);
+  if (a.err) return m.cards.slice();
+  const w = m.cards.find(isWild), nat = m.cards.filter(c => !isWild(c));
+  if (a.type === 'group') { const o = nat.sort((x, y) => suit(x) - suit(y)); if (w !== undefined) o.push(w); return o; }
+  const at = {}; nat.forEach(c => at[runIdx(rank(c))] = c);
+  const out = []; let used = false;
+  for (let i = a.lo; i <= a.hi; i++) { if (at[i] !== undefined) out.push(at[i]); else { out.push(w); used = true; } }
+  if (w !== undefined && !used) { if (a.hi < 10) out.push(w); else out.unshift(w); }
+  return out;
+}
+const isKanastra = m => m.cards.length >= 7;
+const meldClean = m => !!analyze(m.cards, m.type).clean;
+const teamHasClean = (s, t) => s.melds[tk(t)].some(m => isKanastra(m) && meldClean(m));
+const teamKanastras = (s, t) => s.melds[tk(t)].filter(isKanastra).length;
+
+/* ---------- utilidades de estado ---------- */
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    let r;
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) { const b = new Uint32Array(1); crypto.getRandomValues(b); r = b[0] % (i + 1); }
+    else r = Math.floor(Math.random() * (i + 1));
+    [a[i], a[r]] = [a[r], a[i]];
+  }
+  return a;
+}
+const seatName = (s, i) => (s.seats[hk(i)] && s.seats[hk(i)].name) || ('Asiento ' + (i + 1));
+function log(s, m) { s.log = (s.log || []).slice(-39); s.log.push({ m, n: s.turnNo || 0 }); }
+function takeFromHand(s, seat, cards) {
+  const h = s.hands[hk(seat)];
+  const seen = new Set();
+  for (const c of cards) {
+    if (seen.has(c)) fail('Carta repetida en la selección.');
+    seen.add(c);
+    if (!h.includes(c)) fail('Esa carta ya no está en tu mano.');
+  }
+  s.hands[hk(seat)] = h.filter(c => !seen.has(c));
+}
+const middle = arr => Math.max(1, Math.floor(arr.length / 2));
+function nextMeldId(s) { s.meldSeq = (s.meldSeq || 0) + 1; return 'm' + s.meldSeq; }
+
+function newTable(code, cid, name) {
+  return {
+    v: 1, code, status: 'lobby', host: cid,
+    seats: { s0: { cid, name }, s1: null, s2: null, s3: null },
+    round: 0, turnNo: 0, scores: { t0: 0, t1: 0 }, history: [], log: [],
+    rev: 1, created: Date.now(), updated: Date.now()
+  };
+}
+
+function deal(s) {
+  const deck = shuffle([...Array(106).keys()]);   // 2 barajas de 52 + 2 jokers
+  s.hands = { s0: [], s1: [], s2: [], s3: [] };
+  s.melds = { t0: [], t1: [] };
+  s.red3 = { t0: [], t1: [] };
+  s.opened = { t0: false, t1: false };
+  for (let i = 0; i < HAND; i++) for (let p = 0; p < 4; p++) s.hands[hk(p)].push(deck.pop());
+  s.stock = deck;
+  s.round = (s.round || 0) + 1;
+  s.starter = (s.round - 1) % 4;
+  s.log = [];
+  log(s, `Ronda ${s.round}. Reparte la mesa; empieza ${seatName(s, s.starter)}.`);
+  // 3 rojos repartidos: se apartan y se reponen
+  for (let p = 0; p < 4; p++) {
+    let h = s.hands[hk(p)];
+    let red = h.filter(isRed3);
+    while (red.length) {
+      h = h.filter(c => !isRed3(c));
+      for (const c of red) { s.red3[tk(teamOf(p))].push(c); h.push(s.stock.pop()); }
+      log(s, `${seatName(s, p)} apartó ${red.length === 1 ? 'un 3 rojo' : red.length + ' treses rojos'}.`);
+      red = h.filter(isRed3);
+    }
+    s.hands[hk(p)] = h;
+  }
+  // un comodín no puede quedar como última carta del mazo
+  let g = 0;
+  while (isWild(s.stock[0]) && g++ < 30) { const c = s.stock.shift(); s.stock.splice(middle(s.stock), 0, c); }
+  // se inicia el piso con una carta natural (no comodín, no 3)
+  g = 0; let top;
+  while (g++ < 60) {
+    top = s.stock.pop();
+    if (!isWild(top) && rank(top) !== 3) break;
+    s.stock.splice(middle(s.stock), 0, top);
+  }
+  s.pile = [top];
+  s.turn = s.starter; s.phase = 'draw'; s.turnNo = (s.turnNo || 0) + 1;
+  s.flags = { mustBlack3: false, lastTurn: false };
+  s.status = 'playing';
+  s.lastResult = null;
+}
+
+function drawOne(s, seat) {
+  while (true) {
+    if (!s.stock.length) return 'empty';
+    const c = s.stock.pop();
+    if (isRed3(c)) {
+      s.red3[tk(teamOf(seat))].push(c);
+      log(s, `${seatName(s, seat)} sacó un 3 rojo y lo apartó.`);
+      if (!s.stock.length) return 'red3last';
+      continue;
+    }
+    s.hands[hk(seat)].push(c);
+    if (!s.stock.length) s.flags.lastTurn = true;
+    return c;
+  }
+}
+
+function assertTurn(s, seat, phase) {
+  if (s.status !== 'playing') fail('La ronda no está en juego.');
+  if (seat == null || s.turn !== seat) fail('No es tu turno.');
+  if (phase && s.phase !== phase) fail(phase === 'draw' ? 'Ya tomaste carta este turno.' : 'Primero roba o compra el piso.');
+}
+
+function afterMeld(s, seat) {
+  const t = teamOf(seat), n = s.hands[hk(seat)].length;
+  if (n <= 1 && !teamHasClean(s, t)) fail('Para quedarte sin cartas (darbi) tu pareja necesita una kanastra limpia.');
+  if (n === 0) endRound(s, 'darbi', seat);
+}
+
+function validateNewMelds(list) {
+  const out = [];
+  for (const cards of list) {
+    const a = analyze(cards);
+    if (a.err) fail(a.err);
+    out.push({ cards: cards.slice(), type: a.type });
+  }
+  return out;
+}
+
+const ACTIONS = {
+  sit(s, _seat, { seat, cid, name }) {
+    if (s.status !== 'lobby') fail('La partida ya empezó.');
+    if (!name) fail('Escribe tu nombre primero.');
+    const cur = s.seats[hk(seat)];
+    if (cur && cur.cid !== cid) fail('Ese asiento ya está ocupado.');
+    for (let i = 0; i < 4; i++) if (s.seats[hk(i)] && s.seats[hk(i)].cid === cid) s.seats[hk(i)] = null;
+    s.seats[hk(seat)] = { cid, name };
+  },
+  stand(s, _seat, { cid }) {
+    if (s.status !== 'lobby') fail('La partida ya empezó.');
+    for (let i = 0; i < 4; i++) if (s.seats[hk(i)] && s.seats[hk(i)].cid === cid) s.seats[hk(i)] = null;
+  },
+  takeover(s, _seat, { seat, cid }) {
+    const cur = s.seats[hk(seat)];
+    if (!cur) fail('Ese asiento está vacío.');
+    for (let i = 0; i < 4; i++) if (s.seats[hk(i)] && s.seats[hk(i)].cid === cid) fail('Ya tienes un asiento en esta mesa.');
+    s.seats[hk(seat)] = { cid, name: cur.name };
+    log(s, `${cur.name} volvió a la mesa desde otro dispositivo.`);
+  },
+  start(s) {
+    if (s.status !== 'lobby') fail('La partida ya empezó.');
+    for (let i = 0; i < 4; i++) if (!s.seats[hk(i)]) fail('Faltan jugadores: se necesitan 4.');
+    s.round = 0; s.scores = { t0: 0, t1: 0 }; s.history = [];
+    deal(s);
+  },
+  next(s) {
+    if (s.status !== 'roundEnd') fail('La ronda sigue en juego.');
+    deal(s);
+  },
+  rematch(s) {
+    if (s.status !== 'over') fail('La partida no ha terminado.');
+    s.round = 0; s.scores = { t0: 0, t1: 0 }; s.history = []; s.winner = null;
+    deal(s);
+  },
+  draw(s, seat) {
+    assertTurn(s, seat, 'draw');
+    const r = drawOne(s, seat);
+    if (r === 'red3last' || r === 'empty') {
+      log(s, 'Se acabó el mazo con un 3 rojo: termina la ronda.');
+      endRound(s, 'mazo', seat);
+      return;
+    }
+    s.phase = 'play';
+    log(s, `${seatName(s, seat)} robó del mazo.`);
+  },
+  buy(s, seat, { cards, draft }) {
+    assertTurn(s, seat, 'draw');
+    if (!s.pile.length) fail('El piso está vacío.');
+    const top = s.pile[s.pile.length - 1];
+    if (isBlack3(top)) fail('El piso está bloqueado con un 3 negro.');
+    if (!cards || cards.length < 2) fail('Selecciona al menos 2 cartas de tu mano.');
+    const t = teamOf(seat);
+    const combo = cards.concat([top]);
+    const a = analyze(combo);
+    if (a.err) fail('Con la carta del piso: ' + a.err);
+    const extra = s.opened[tk(t)] ? [] : validateNewMelds(draft || []);
+    const all = cards.concat(...extra.map(m => m.cards));
+    if (!s.opened[tk(t)]) {
+      const pts = sum(combo) + extra.reduce((x, m) => x + sum(m.cards), 0);
+      if (pts < OPEN) fail(`Para abrir necesitas ${OPEN} puntos. Llevas ${pts}.`);
+    }
+    takeFromHand(s, seat, all);
+    s.pile.pop();
+    s.melds[tk(t)].push({ id: nextMeldId(s), type: a.type, cards: combo });
+    for (const m of extra) s.melds[tk(t)].push({ id: nextMeldId(s), type: m.type, cards: m.cards });
+    const rest = s.pile; s.pile = [];
+    const b3 = rest.filter(isBlack3).length;
+    s.hands[hk(seat)].push(...rest);
+    s.flags.mustBlack3 = b3 > 0;
+    if (!s.opened[tk(t)]) { s.opened[tk(t)] = true; log(s, `${seatName(s, seat)} abrió para su pareja.`); }
+    s.phase = 'play';
+    log(s, `${seatName(s, seat)} compró el piso con ${cardName(top)} (${rest.length} cartas más).`);
+    afterMeld(s, seat);
+  },
+  meld(s, seat, { melds }) {
+    assertTurn(s, seat, 'play');
+    const t = teamOf(seat);
+    if (!melds || !melds.length) fail('No hay nada que bajar.');
+    const list = validateNewMelds(melds);
+    if (!s.opened[tk(t)]) {
+      const pts = list.reduce((x, m) => x + sum(m.cards), 0);
+      if (pts < OPEN) fail(`Para abrir necesitas ${OPEN} puntos. Llevas ${pts}.`);
+    }
+    takeFromHand(s, seat, [].concat(...list.map(m => m.cards)));
+    for (const m of list) s.melds[tk(t)].push({ id: nextMeldId(s), type: m.type, cards: m.cards });
+    if (!s.opened[tk(t)]) { s.opened[tk(t)] = true; log(s, `${seatName(s, seat)} abrió para su pareja.`); }
+    log(s, `${seatName(s, seat)} bajó ${list.length === 1 ? 'una combinación' : list.length + ' combinaciones'}.`);
+    afterMeld(s, seat);
+  },
+  add(s, seat, { meldId, cards }) {
+    assertTurn(s, seat, 'play');
+    const t = teamOf(seat);
+    if (!s.opened[tk(t)]) fail('Tu pareja aún no ha abierto.');
+    const m = s.melds[tk(t)].find(x => x.id === meldId);
+    if (!m) fail('Esa combinación no es de tu pareja.');
+    if (!cards || !cards.length) fail('Selecciona cartas para añadir.');
+    const before = isKanastra(m) ? meldClean(m) : null;
+    const a = analyze(m.cards.concat(cards), m.type);
+    if (a.err) fail(a.err);
+    takeFromHand(s, seat, cards);
+    m.cards = m.cards.concat(cards);
+    let note = '';
+    if (isKanastra(m) && before === null) note = a.clean ? ' ¡Kanastra limpia!' : ' ¡Kanastra sucia!';
+    else if (before === true && !a.clean) note = ' La kanastra quedó sucia.';
+    log(s, `${seatName(s, seat)} añadió ${cards.length} a una combinación.${note}`);
+    afterMeld(s, seat);
+  },
+  discard(s, seat, { card }) {
+    assertTurn(s, seat, 'play');
+    const h = s.hands[hk(seat)];
+    if (!h.includes(card)) fail('Esa carta no está en tu mano.');
+    if (s.flags.mustBlack3 && h.some(isBlack3) && !isBlack3(card)) fail('Compraste un piso con 3 negro: debes tirar un 3 negro.');
+    const t = teamOf(seat);
+    if (h.length === 1 && !teamHasClean(s, t)) fail('Para hacer darbi tu pareja necesita una kanastra limpia.');
+    takeFromHand(s, seat, [card]);
+    s.pile.push(card);
+    log(s, `${seatName(s, seat)} tiró ${cardName(card)}${isBlack3(card) ? ' y bloqueó el piso' : ''}.`);
+    if (!s.hands[hk(seat)].length) { endRound(s, 'darbi', seat); return; }
+    if (s.flags.lastTurn) { log(s, 'Se acabó el mazo: termina la ronda.'); endRound(s, 'mazo', seat); return; }
+    s.turn = (seat + 1) % 4; s.phase = 'draw'; s.turnNo = (s.turnNo || 0) + 1;
+    s.flags = { mustBlack3: false, lastTurn: false };
+  }
+};
+
+function scoreTeam(s, t, reason, seat) {
+  const melds = s.melds[tk(t)];
+  const mesa = melds.reduce((x, m) => x + sum(m.cards), 0);
+  let limpias = 0, sucias = 0;
+  for (const m of melds) if (isKanastra(m)) meldClean(m) ? limpias++ : sucias++;
+  const r3 = s.red3[tk(t)].length;
+  const tres = (limpias + sucias) > 0 ? r3 * 100 : 0;
+  const darbi = reason === 'darbi' && teamOf(seat) === t ? 100 : 0;
+  const mano = reason === 'darbi' ? sum(s.hands[hk(t)]) + sum(s.hands[hk(t + 2)]) : 0;
+  const total = mesa + limpias * 500 + sucias * 300 + tres + darbi - mano;
+  return { mesa, limpias, sucias, r3, tres, darbi, mano, total };
+}
+
+function endRound(s, reason, seat) {
+  const r = [0, 1].map(t => scoreTeam(s, t, reason, seat));
+  s.scores.t0 += r[0].total; s.scores.t1 += r[1].total;
+  const entry = { round: s.round, reason, by: seat, t0: r[0], t1: r[1], after: { t0: s.scores.t0, t1: s.scores.t1 } };
+  s.history = (s.history || []).concat([entry]).slice(-40);
+  s.lastResult = entry;
+  log(s, reason === 'darbi' ? `¡${seatName(s, seat)} hizo darbi! Termina la ronda.` : 'Fin de la ronda por mazo agotado.');
+  const A = s.scores.t0, B = s.scores.t1;
+  if ((A > WIN || B > WIN) && A !== B) { s.status = 'over'; s.winner = A > B ? 0 : 1; }
+  else s.status = 'roundEnd';
+  s.phase = 'done';
+}
+
+if (typeof module !== 'undefined' && typeof window === 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, rank, suit, val, sum, cardName, GameErr, teamHasClean };
+
+/* ===== Interfaz compartida (offline y servidor) ===== */
+const $ = q => document.querySelector(q);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const fmt = n => Number(n || 0).toLocaleString('es-CO');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const clone = x => JSON.parse(JSON.stringify(x));
+
+let B = null;              // backend activo
+let view = 'home', state = null, code = null, cid = null;
+let myName = store.get('kan_name') || '';
+let sel = [], draft = [], draftKey = '', online = new Set(), busy = false;
+let sortMode = store.get('kan_sort') || 'suit';
+let layer = null;
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 3200);
+}
+const mySeat = () => (state && state.seats) ? B.seat() : null;
+const myHand = () => { const m = mySeat(); return (m != null && state.hands) ? state.hands[hk(m)] || [] : []; };
+function teamLabel(t) {
+  const m = mySeat();
+  if (B.absoluteTeams || m == null) return t ? 'Pareja B' : 'Pareja A';
+  return teamOf(m) === t ? 'Nosotros' : 'Ellos';
+}
+const teamNames = t => seatName(state, t) + ' y ' + seatName(state, t + 2);
+
+function setState(s) {
+  state = s;
+  const k = state.round + '-' + state.turnNo;
+  if (k !== draftKey) { draftKey = k; draft = []; sel = []; }
+  const hand = myHand();
+  draft = draft.filter(m => m.every(c => hand.includes(c)));
+  const inDraft = new Set([].concat(...draft));
+  sel = sel.filter(c => hand.includes(c) && !inDraft.has(c));
+  render();
+}
+async function act(name, args) {
+  if (busy) return false;
+  busy = true; document.body.classList.add('busy');
+  try { await B.act(name, args || {}); return true; }
+  catch (e) { toast(e && e.message ? e.message : 'No se pudo hacer la jugada.'); return false; }
+  finally { busy = false; document.body.classList.remove('busy'); }
+}
+
+/* ---------- piezas ---------- */
+function cardHTML(c, o = {}) {
+  const cls = ['card'];
+  if (isJoker(c)) cls.push('joker'); else if (isRedSuit(c)) cls.push('red');
+  if (isWild(c)) cls.push('wild');
+  if (o.sel) cls.push('sel');
+  const r = isJoker(c) ? 'JOKER' : rankLabel(c);
+  const s = isJoker(c) ? '★' : SUITS[suit(c)];
+  const inner = `<span class="cr">${r}</span><span class="cs">${s}</span>`;
+  if (o.btn) return `<button type="button" class="${cls.join(' ')}" data-card="${c}" aria-pressed="${!!o.sel}" aria-label="${esc(cardName(c))}">${inner}</button>`;
+  return `<div class="${cls.join(' ')}" role="img" aria-label="${esc(cardName(c))}">${inner}</div>`;
+}
+const backHTML = () => '<div class="card back" aria-hidden="true"></div>';
+function sortKey(c) {
+  if (isWild(c)) return 10000 + c;
+  const ri = rank(c) === 3 ? -1 : runIdx(rank(c));
+  return sortMode === 'suit' ? suit(c) * 100 + ri * 2 + (c >= 52 ? 1 : 0) : (ri + 1) * 10 + suit(c);
+}
+const sortHand = h => h.slice().sort((a, b) => sortKey(a) - sortKey(b));
+
+function header(extra) {
+  return `<div class="topbar"><div class="brand"><span class="flag" aria-hidden="true"></span><span class="wordmark">KANASTRA</span></div>
+    <div class="toptools">${extra || ''}<button class="btn sm ghost" data-act="rules">Reglas</button></div></div>`;
+}
+
+function render() {
+  const app = $('#app');
+  if (view === 'home') { app.innerHTML = header() + B.homeHTML(); B.afterHome && B.afterHome(); }
+  else if (!state) app.innerHTML = header(B.tools()) + '<p class="muted">Entrando a la mesa…</p>';
+  else {
+    const cover = B.cover && B.cover();
+    if (cover) app.innerHTML = header(B.tools()) + cover;
+    else if (state.status === 'lobby') app.innerHTML = header(B.tools()) + waitingRoom();
+    else app.innerHTML = header(B.tools()) + gameView();
+  }
+  renderLayer();
+}
+
+function waitingRoom() {
+  const m = mySeat();
+  const box = i => {
+    const s = state.seats[hk(i)];
+    const team = teamOf(i) ? 'teamB' : 'teamA';
+    const tl = teamOf(i) ? 'Pareja B' : 'Pareja A';
+    let body;
+    if (s) body = `<span class="nm">${esc(s.name)}${s.cid === cid ? ' (tú)' : ''}</span>${s.cid === cid ? '<button class="btn sm ghost" data-act="stand">Levantarme</button>' : `<span class="dot ${online.has(s.cid) ? 'on' : ''}" title="${online.has(s.cid) ? 'Conectado' : 'Sin conexión'}"></span>`}`;
+    else body = `<button class="btn sm primary" data-act="sit" data-seat="${i}">Sentarme aquí</button>`;
+    return `<div class="seatbox ${team}" style="grid-area:s${i}"><span class="label">Asiento ${i + 1} · ${tl}</span>${body}</div>`;
+  };
+  const full = [0, 1, 2, 3].every(i => state.seats[hk(i)]);
+  return `<section class="panel" style="gap:16px">
+    <div><h2>Sala de espera</h2><p class="muted" style="margin:4px 0 0">Los compañeros se sientan frente a frente: asientos 1 y 3 contra 2 y 4. Comparte el código <b>${esc(code)}</b> con tu familia.</p></div>
+    ${m == null ? `<div class="field"><label class="label" for="nombre">Tu nombre en la mesa</label><input type="text" id="nombre" maxlength="18" placeholder="Ej: Tía Nadia" value="${esc(myName)}"></div>` : ''}
+    <div class="seatcross">${box(0)}${box(1)}${box(2)}${box(3)}
+      <div class="midcode" style="grid-area:mid"><div class="label">Código</div><div class="big">${esc(code)}</div></div></div>
+    <div class="actions" style="justify-content:center">
+      <button class="btn primary" data-act="start" ${full && m != null ? '' : 'disabled'}>Repartir cartas</button>
+      ${state.host === cid ? '<button class="btn danger" data-act="askdelete">Borrar mesa</button>' : ''}
+    </div>
+    ${full ? '' : '<p class="muted small" style="text-align:center;margin:0">Se reparte cuando estén los cuatro.</p>'}
+  </section>`;
+}
+
+function plate(i) {
+  const s = state.seats[hk(i)];
+  const n = (state.hands && state.hands[hk(i)] || []).length;
+  const isTurn = state.status === 'playing' && state.turn === i;
+  const me = s && s.cid === cid && !B.absoluteTeams;
+  const dot = B.showDots ? `<span class="dot ${s && online.has(s.cid) ? 'on' : ''}" aria-hidden="true"></span>` : '';
+  return `<div class="plate ${isTurn ? 'turn' : ''}">
+    <div class="nm">${dot}<span>${esc(seatName(state, i))}${me ? ' (tú)' : ''}</span></div>
+    <div class="small muted">${teamLabel(teamOf(i))}<span class="hide-sm"> · asiento ${i + 1}</span></div>
+    <div class="backs">${backHTML()}<span class="num">${n}<span class="hide-sm"> ${n === 1 ? 'carta' : 'cartas'}</span></span>${isTurn ? '<span class="chip gold">Juega</span>' : ''}</div>
+  </div>`;
+}
+
+function turnText() {
+  if (state.status !== 'playing') return '';
+  const m = mySeat(), t = state.turn, who = seatName(state, t);
+  if (m === t) return state.phase === 'draw' ? 'Tu turno: roba del mazo o compra el piso.' : 'Baja lo que puedas y termina tirando una carta.';
+  return `Turno de ${who}${state.phase === 'draw' ? '' : ' (ya tomó carta)'}.`;
+}
+
+function meldHTML(m, t) {
+  const cards = arrange(m);
+  const kan = isKanastra(m), clean = meldClean(m);
+  const tag = kan ? `Kanastra ${clean ? 'limpia' : 'sucia'} · ${m.cards.length}` : `${m.cards.length} cartas · ${sum(m.cards)} pts`;
+  const inner = `<div class="fan mini">${cards.map(c => cardHTML(c)).join('')}</div><span class="tag">${tag}</span>`;
+  const me = mySeat();
+  const canAdd = me != null && state.status === 'playing' && state.turn === me && state.phase === 'play'
+    && teamOf(me) === t && state.opened[tk(t)] && sel.length > 0;
+  if (canAdd) {
+    const a = analyze(m.cards.concat(sel), m.type);
+    return `<button type="button" class="meld ${kan ? 'kan' : ''} ${a.err ? 'no' : 'yes'}" data-act="add" data-meld="${esc(m.id)}" title="${esc(a.err || 'Añadir aquí')}">${inner}</button>`;
+  }
+  return `<div class="meld ${kan ? 'kan' : ''}">${inner}</div>`;
+}
+
+function teamHTML(t) {
+  const mine = mySeat() != null && teamOf(mySeat()) === t;
+  const melds = state.melds[tk(t)];
+  const r3 = state.red3[tk(t)];
+  const kans = teamKanastras(state, t);
+  const table = melds.reduce((x, m) => x + sum(m.cards), 0);
+  return `<section class="team ${mine ? 'us' : ''}">
+    <div class="head"><div><h3>${teamLabel(t)}</h3><div class="small muted">${esc(teamNames(t))}</div></div>
+      <div class="row">
+        ${state.opened[tk(t)] ? `<span class="chip green">En mesa: ${fmt(table)}</span>` : `<span class="chip">Sin abrir · necesita ${OPEN}</span>`}
+        ${kans ? `<span class="chip gold">${kans} ${kans === 1 ? 'kanastra' : 'kanastras'}</span>` : ''}
+        ${r3.length ? `<span class="r3 mini" title="3 rojos: valen 100 si hay kanastra">${r3.map(c => cardHTML(c)).join('')}</span>` : ''}
+      </div></div>
+    <div class="melds">${melds.length ? melds.map(m => meldHTML(m, t)).join('') : '<span class="empty">Todavía no ha bajado combinaciones.</span>'}</div>
+  </section>`;
+}
+
+function resultHTML() {
+  const r = state.lastResult; if (!r) return '';
+  const m = mySeat();
+  const rows = [
+    ['Cartas en la mesa', x => fmt(x.mesa)],
+    ['Kanastras limpias', x => x.limpias ? `${x.limpias} × 500` : '—'],
+    ['Kanastras sucias', x => x.sucias ? `${x.sucias} × 300` : '—'],
+    ['3 rojos', x => x.r3 ? (x.tres ? `+${fmt(x.tres)}` : `${x.r3} sin kanastra: 0`) : '—'],
+    ['Darbi', x => x.darbi ? '+100' : '—'],
+    ['Cartas en la mano', x => x.mano ? `−${fmt(x.mano)}` : '—']
+  ];
+  const over = state.status === 'over';
+  const title = over ? (teamLabel(state.winner) === 'Nosotros' ? '¡Ganamos la partida!' : `¡Ganaron ${teamNames(state.winner)}!`) : `Fin de la ronda ${r.round}`;
+  const why = r.reason === 'darbi' ? `${seatName(state, r.by)} hizo darbi.` : 'Se agotó el mazo: no se restan las cartas en mano.';
+  return `<section class="result">
+    <div><h2>${esc(title)}</h2><p class="muted" style="margin:4px 0 0">${esc(why)}${over ? ` Marcador final ${fmt(state.scores.t0)} a ${fmt(state.scores.t1)}.` : ''}</p></div>
+    <div class="tablewrap"><table class="res"><thead><tr><th></th><th>${teamLabel(0)}</th><th>${teamLabel(1)}</th></tr></thead><tbody>
+      ${rows.map(([l, f]) => `<tr><td>${l}</td><td>${f(r.t0)}</td><td>${f(r.t1)}</td></tr>`).join('')}
+      <tr><td>Total de la ronda</td><td>${fmt(r.t0.total)}</td><td>${fmt(r.t1.total)}</td></tr>
+      <tr class="tot"><td>Acumulado</td><td>${fmt(r.after.t0)}</td><td>${fmt(r.after.t1)}</td></tr>
+    </tbody></table></div>
+    ${m != null ? `<div class="actions">${over ? '<button class="btn gold" data-act="rematch">Nueva partida</button>' : '<button class="btn gold" data-act="next">Repartir la siguiente ronda</button>'}</div>` : ''}
+    ${!over ? `<p class="small muted" style="margin:0">Gana quien termine una ronda con más de ${fmt(WIN)}.</p>` : ''}
+  </section>`;
+}
+
+function selectionHint() {
+  const m = mySeat();
+  if (m == null || state.status !== 'playing') return { t: '', c: '' };
+  const t = teamOf(m), opened = state.opened[tk(t)];
+  if (state.turn !== m) return { t: sel.length ? `${sel.length} seleccionadas.` : 'Ordena tu mano mientras esperas tu turno.', c: '' };
+  const top = state.pile[state.pile.length - 1];
+  if (state.phase === 'draw') {
+    if (sel.length >= 2 && state.pile.length) {
+      if (isBlack3(top)) return { t: 'El piso está bloqueado con un 3 negro: solo puedes robar.', c: 'bad' };
+      const a = analyze(sel.concat([top]));
+      if (a.err) return { t: 'Con la carta del piso: ' + a.err, c: 'bad' };
+      const extra = draft.reduce((x, d) => x + sum(d), 0);
+      const pts = sum(sel.concat([top])) + extra;
+      return { t: `Con la del piso: ${describe(a)} · ${pts} pts${opened ? '' : ` de ${OPEN} para abrir`}.`, c: opened || pts >= OPEN ? 'ok' : 'bad' };
+    }
+    if (sel.length >= 3 && !opened) { const a = analyze(sel); return { t: a.err || `${describe(a)} · ${sum(sel)} pts. Puedes prepararla para abrir junto con la compra del piso.`, c: a.err ? 'bad' : 'ok' }; }
+    return { t: opened ? 'Roba del mazo, o selecciona 2 cartas que combinen con la de arriba del piso.' : `Tu pareja aún no abre: necesitan ${OPEN} puntos en la primera bajada.`, c: '' };
+  }
+  if (state.flags.mustBlack3 && myHand().some(isBlack3) && sel.length === 1 && !isBlack3(sel[0]))
+    return { t: 'Compraste un piso con 3 negro: debes tirar un 3 negro.', c: 'bad' };
+  if (sel.length === 1) return { t: 'Tira esta carta, o selecciona más para bajar.', c: '' };
+  if (sel.length >= 3) { const a = analyze(sel); return { t: a.err || `${describe(a)} · ${sum(sel)} pts`, c: a.err ? 'bad' : 'ok' }; }
+  if (sel.length && opened) return { t: 'Toca una combinación de tu pareja para añadirlas.', c: '' };
+  if (draft.length) { const pts = draft.reduce((x, d) => x + sum(d), 0); return { t: `Bajada preparada: ${pts} de ${OPEN} puntos.`, c: pts >= OPEN ? 'ok' : 'bad' }; }
+  return { t: 'Selecciona cartas para bajar, añadir o tirar.', c: '' };
+}
+
+function actionsHTML() {
+  const m = mySeat();
+  if (m == null || state.status !== 'playing' || state.turn !== m) return '';
+  const t = teamOf(m), opened = state.opened[tk(t)];
+  const top = state.pile[state.pile.length - 1];
+  const out = [];
+  if (state.phase === 'draw') {
+    out.push(`<button class="btn primary" data-act="draw">Robar del mazo</button>`);
+    const canBuy = sel.length >= 2 && state.pile.length && !isBlack3(top);
+    out.push(`<button class="btn gold" data-act="buy" ${canBuy ? '' : 'disabled'}>Comprar el piso</button>`);
+    if (!opened) out.push(`<button class="btn" data-act="stage" ${sel.length >= 3 ? '' : 'disabled'}>Preparar para abrir</button>`);
+  } else {
+    out.push(`<button class="btn primary" data-act="meld" ${sel.length >= 3 ? '' : 'disabled'}>${opened ? 'Bajar combinación' : 'Preparar combinación'}</button>`);
+    if (!opened) { const pts = draft.reduce((x, d) => x + sum(d), 0); out.push(`<button class="btn gold" data-act="confirm" ${draft.length && pts >= OPEN ? '' : 'disabled'}>Abrir con ${pts}/${OPEN}</button>`); }
+    out.push(`<button class="btn danger" data-act="discard" ${sel.length === 1 && !draft.length ? '' : 'disabled'}>${myHand().length === 1 ? 'Tirar y cerrar (darbi)' : 'Tirar carta'}</button>`);
+  }
+  if (sel.length) out.push(`<button class="btn ghost" data-act="clear">Quitar selección</button>`);
+  return `<div class="actions">${out.join('')}</div>`;
+}
+
+function meArea() {
+  const m = mySeat();
+  if (m == null) {
+    if (!B.canTakeover) return '';
+    return `<section class="me"><h3>Estás mirando esta mesa</h3>
+      <p class="muted small" style="margin:0">¿Eres uno de los jugadores y cambiaste de dispositivo? Toma tu asiento:</p>
+      <div class="actions">${[0, 1, 2, 3].map(i => `<button class="btn sm" data-act="asktake" data-seat="${i}">Soy ${esc(seatName(state, i))}</button>`).join('')}</div></section>`;
+  }
+  const inDraft = new Set([].concat(...draft));
+  const hand = sortHand(myHand().filter(c => !inDraft.has(c)));
+  const h = selectionHint();
+  const isTurn = state.status === 'playing' && state.turn === m;
+  const flags = [];
+  if (isTurn && state.flags.lastTurn) flags.push('<span class="chip red">Última carta del mazo: la ronda termina con este turno</span>');
+  if (isTurn && state.flags.mustBlack3 && myHand().some(isBlack3)) flags.push('<span class="chip red">Debes tirar un 3 negro</span>');
+  if (teamHasClean(state, teamOf(m))) flags.push('<span class="chip gold">Pueden hacer darbi</span>');
+  return `<section class="me ${isTurn ? 'turn' : ''}">
+    <div class="mehead"><div><h3>${B.absoluteTeams ? 'Mano de ' + esc(seatName(state, m)) : 'Tu mano'} · ${myHand().length} cartas</h3><div class="small muted">${esc(seatName(state, m))} · ${teamLabel(teamOf(m))}</div></div>
+      <div class="row">${flags.join('')}<button class="btn sm ghost" data-act="sort">Ordenar por ${sortMode === 'suit' ? 'número' : 'palo'}</button></div></div>
+    ${draft.length ? `<div class="draft"><span class="label" style="width:100%">Bajada preparada (aún no está en la mesa)</span>${draft.map((d, i) => { const a = analyze(d); return `<div class="meld"><div class="fan mini">${arrange({ cards: d, type: a.type }).map(c => cardHTML(c)).join('')}</div><button class="btn sm ghost" data-act="unstage" data-i="${i}">Devolver</button></div>`; }).join('')}</div>` : ''}
+    <div class="hand" role="group" aria-label="Tu mano">${hand.map(c => cardHTML(c, { btn: true, sel: sel.includes(c) })).join('')}</div>
+    <div class="hint ${h.c}">${esc(h.t)}</div>
+    ${actionsHTML()}
+  </section>`;
+}
+
+function gameView() {
+  const m = mySeat();
+  const base = m == null ? 0 : m;
+  const others = m == null ? [0, 1, 2, 3] : [(base + 1) % 4, (base + 2) % 4, (base + 3) % 4];
+  const top = state.pile[state.pile.length - 1];
+  const blocked = state.pile.length && isBlack3(top);
+  const playing = state.status === 'playing';
+  const usT = (m == null || B.absoluteTeams) ? 0 : teamOf(m), themT = 1 - usT;
+  const sc = t => `<div class="sc ${t ? 'b' : ''}"><div class="label">${teamLabel(t)}</div><div class="v">${fmt(state.scores[tk(t)])}</div><div class="bar"><i style="width:${Math.max(0, Math.min(100, state.scores[tk(t)] / WIN * 100))}%"></i></div></div>`;
+  return `<div class="game">
+    <div class="mainc">
+      <div class="row" style="justify-content:space-between"><div class="score">${sc(usT)}${sc(themT)}</div><span class="chip">Ronda ${state.round} · meta ${fmt(WIN)}</span></div>
+      ${!playing ? resultHTML() : ''}
+      <div class="plates ${others.length === 4 ? 'four' : ''}">${others.map(plate).join('')}</div>
+      <div class="center">
+        <div class="pilebox"><div class="stack">${state.stock.length ? backHTML() : '<div class="card slot"></div>'}</div><span class="small muted num">Mazo · ${state.stock.length}</span></div>
+        <div class="pilebox"><div class="stack">${state.pile.length ? cardHTML(top) : '<div class="card slot"></div>'}</div><span class="small muted num">Piso · ${state.pile.length}</span>${blocked ? '<span class="chip red">Bloqueado</span>' : ''}</div>
+        <div class="status"><div class="big">${esc(playing ? turnText() : 'Ronda terminada')}</div>
+          <div class="small muted">${playing && state.log && state.log.length ? esc(state.log[state.log.length - 1].m) : ''}</div></div>
+      </div>
+      <div class="teams">${teamHTML(themT)}${teamHTML(usT)}</div>
+      ${playing ? meArea() : (m != null ? '' : meArea())}
+    </div>
+    <aside class="side">
+      <section class="panel"><h3 style="font-size:17px">Lo que ha pasado</h3><div class="log">${(state.log || []).map(l => `<div>${esc(l.m)}</div>`).join('')}</div></section>
+      <section class="panel"><h3 style="font-size:17px">Rondas</h3>${historyHTML()}</section>
+    </aside>
+  </div>`;
+}
+function historyHTML() {
+  const h = state.history || [];
+  if (!h.length) return '<p class="empty" style="margin:0">Aún no termina ninguna ronda.</p>';
+  return `<div class="tablewrap"><table class="res"><thead><tr><th>#</th><th>${teamLabel(0)}</th><th>${teamLabel(1)}</th></tr></thead><tbody>
+    ${h.map(e => `<tr><td>${e.round}${e.reason === 'darbi' ? ' · darbi' : ''}</td><td>${fmt(e.t0.total)}</td><td>${fmt(e.t1.total)}</td></tr>`).join('')}
+    <tr class="tot"><td>Total</td><td>${fmt(state.scores.t0)}</td><td>${fmt(state.scores.t1)}</td></tr></tbody></table></div>`;
+}
+
+function renderLayer() {
+  const el = $('#layer');
+  if (!layer) { el.innerHTML = ''; return; }
+  if (layer.type === 'confirm') {
+    el.innerHTML = `<div class="overlay" data-act="closelayer"><div class="sheet" role="dialog" aria-modal="true" style="max-width:420px">
+      <p style="margin:0">${esc(layer.text)}</p>
+      <div class="actions"><button class="btn primary" data-act="doconfirm">Sí, continuar</button><button class="btn ghost" data-act="closelayer">Cancelar</button></div></div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="overlay" data-act="closelayer"><div class="sheet" role="dialog" aria-modal="true" aria-label="Reglas">
+    <div class="row" style="justify-content:space-between"><h2>Reglas de nuestra Kanastra</h2><button class="btn sm" data-act="closelayer">Cerrar</button></div>
+    <h3>Jugadores y cartas</h3>
+    <ul><li>4 personas en 2 parejas; los compañeros se sientan frente a frente.</li><li>Dos barajas de 52 más 2 jokers: 106 cartas. Se reparten 15 a cada uno.</li><li>Un joker o joly no puede quedar como última carta del mazo: se pasa al medio.</li></ul>
+    <h3>Objetivo</h3>
+    <ul><li>Gana la pareja que termine una ronda con más de 5.000. Con exactamente 5.000 se sigue jugando. Si las dos pasan, gana la de más puntos.</li></ul>
+    <h3>Valor de las cartas</h3>
+    <ul><li>3 negro: 0 (bloquea el piso) · 3 rojo: 100 si la pareja tiene kanastra.</li><li>4 a 7: 5 · 8 a K: 10 · As: 20 · Joly (2): 20, comodín · Joker: 50, comodín.</li><li>El 3 rojo se aparta al recibirlo y se toma otra carta.</li></ul>
+    <h3>Combinaciones</h3>
+    <ul><li>Escaleras del mismo palo o grupos del mismo número, de 3 cartas en adelante. Con 7 cartas son kanastra.</li><li>Máximo un comodín por combinación.</li><li>La primera bajada necesita 80 puntos con las cartas que se bajan; premios y 3 rojos no cuentan.</li></ul>
+    <h3>Kanastras</h3>
+    <ul><li>Limpia +500: sin comodín, con joker, o en escalera con un joly del mismo palo.</li><li>Sucia +300: joly de otro palo en escalera, o joly en un grupo.</li><li>Una sucia no vuelve a ser limpia; una limpia se ensucia si le añaden un joly que la ensucie.</li></ul>
+    <h3>Turno</h3>
+    <ul><li>Robas una carta del mazo, o compras el piso: dos cartas de tu mano más la de arriba forman una combinación y te llevas todo el montón.</li><li>Terminas tirando una carta. Un 3 negro tirado impide que el siguiente compre el piso.</li><li>Si compras un piso con 3 negros, tiras uno al terminar.</li></ul>
+    <h3>Darbi y puntos</h3>
+    <ul><li>Darbi es quedarte sin cartas: +100. Tu pareja debe tener al menos una kanastra limpia.</li><li>Puntos: cartas en la mesa + kanastras + 3 rojos + darbi − cartas en la mano de ambos compañeros (solo si hubo darbi).</li><li>Si se agota el mazo termina la ronda y no se restan las cartas en mano.</li></ul>
+    <h3>Cómo resolvimos las dudas en esta versión</h3>
+    <ul>
+      <li>Si la última carta del mazo es un 3 rojo, se aparta y la ronda termina ahí.</li>
+      <li>Quien roba la última carta normal juega su turno completo y luego termina la ronda.</li>
+      <li>La primera bajada es por pareja. Si abres comprando el piso, cuenta la carta de arriba del piso más las de tu mano; el resto del piso no cuenta.</li>
+      <li>Las escaleras van del 4 al As (el As va después de la K). Los 3 no se bajan.</li>
+      <li>La carta que inicia el piso no puede ser comodín ni 3: si sale, vuelve al medio del mazo.</li>
+      <li>Puedes hacer darbi tirando tu última carta o bajándola. Sin kanastra limpia no puedes quedarte con 1 o 0 cartas.</li>
+      <li>Las kanastras pueden seguir creciendo después de 7 cartas.</li>
+      <li>Si las dos parejas quedan empatadas por encima de 5.000, se juega otra ronda.</li>
+    </ul></div></div>`;
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('input', e => {
+  if (e.target.id === 'nombre') { myName = e.target.value.slice(0, 18); store.set('kan_name', myName); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && layer) { layer = null; renderLayer(); }
+  if (B && B.onKey) B.onKey(e);
+});
+document.addEventListener('click', e => {
+  const cardEl = e.target.closest('[data-card]');
+  if (cardEl) {
+    const c = Number(cardEl.dataset.card);
+    sel = sel.includes(c) ? sel.filter(x => x !== c) : sel.concat([c]);
+    render(); return;
+  }
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  if (b.classList.contains('overlay') && e.target !== b) return;
+  handle(b.dataset.act, b.dataset);
+});
+
+function handle(a, d) {
+  if (B.handle && B.handle(a, d)) return;
+  switch (a) {
+    case 'rules': layer = { type: 'rules' }; renderLayer(); break;
+    case 'closelayer': layer = null; renderLayer(); break;
+    case 'doconfirm': { const l = layer; layer = null; renderLayer(); if (l && l.run) l.run(); break; }
+    case 'next': act('next'); break;
+    case 'rematch': act('rematch'); break;
+    case 'draw': act('draw'); break;
+    case 'buy': act('buy', { cards: sel.slice(), draft: draft.map(x => x.slice()) }); break;
+    case 'stage': case 'meld': {
+      const m = mySeat(); if (m == null) return;
+      const opened = state.opened[tk(teamOf(m))];
+      const an = analyze(sel);
+      if (an.err) { toast(an.err); return; }
+      if (a === 'meld' && opened) { act('meld', { melds: [sel.slice()] }); return; }
+      draft.push(sel.slice()); sel = []; render(); break;
+    }
+    case 'unstage': draft.splice(Number(d.i), 1); render(); break;
+    case 'confirm': act('meld', { melds: draft.map(x => x.slice()) }); break;
+    case 'discard': if (sel.length === 1) act('discard', { card: sel[0] }); break;
+    case 'add': {
+      const m = state.melds[tk(teamOf(mySeat()))].find(x => x.id === d.meld);
+      if (m) { const an = analyze(m.cards.concat(sel), m.type); if (an.err) { toast(an.err); return; } }
+      act('add', { meldId: d.meld, cards: sel.slice() }); break;
+    }
+    case 'clear': sel = []; render(); break;
+    case 'sort': sortMode = sortMode === 'suit' ? 'rank' : 'suit'; store.set('kan_sort', sortMode); render(); break;
+  }
+}
+
+/* ===== Modo en línea con servidor propio ===== */
+let es = null, listTimer = null, tables = [];
+cid = store.get('kan_cid');
+if (!cid) { cid = 'c' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); store.set('kan_cid', cid); }
+
+async function api(method, url, body) {
+  let r;
+  try {
+    r = await fetch(url, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  } catch (e) { throw new Error('Sin conexión con el servidor.'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const err = new Error(j.error || 'El servidor no respondió bien.'); err.status = r.status; throw err; }
+  return j;
+}
+async function refreshTables() {
+  try { tables = (await api('GET', 'api/mesas')).mesas || []; } catch (e) { tables = tables || []; }
+  if (view === 'home') renderTables();
+}
+function renderTables() {
+  const el = $('#mesas'); if (!el) return;
+  if (!tables.length) { el.innerHTML = '<p class="empty">Todavía no hay mesas. Crea la primera y comparte el código.</p>'; return; }
+  el.innerHTML = tables.map(t => {
+    const names = [0, 1, 2, 3].map(i => t.seats && t.seats[hk(i)] ? t.seats[hk(i)].name : null).filter(Boolean);
+    const st = t.status === 'lobby' ? `Esperando jugadores · ${names.length}/4` : t.status === 'over' ? 'Partida terminada' : `En juego · ronda ${t.round}`;
+    return `<div class="trow"><span class="code">${esc(t.code)}</span>
+      <div class="info"><div class="small">${esc(st)}</div><div class="names">${names.map(esc).join(', ') || 'Sin jugadores'}</div></div>
+      <button class="btn sm" data-act="open" data-code="${esc(t.code)}">Entrar</button></div>`;
+  }).join('');
+}
+function goHome() {
+  if (es) { es.close(); es = null; }
+  state = null; code = null; online = new Set(); view = 'home';
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  render(); refreshTables();
+  clearInterval(listTimer); listTimer = setInterval(refreshTables, 6000);
+}
+async function openTable(c) {
+  c = String(c || '').toUpperCase().trim();
+  if (!/^[A-Z0-9]{4}$/.test(c)) { toast('El código tiene 4 letras o números.'); return; }
+  try { await api('GET', 'api/mesas/' + c); } catch (e) { toast(e.status === 404 ? 'No encontramos la mesa ' + c + '.' : e.message); if (view !== 'home') goHome(); return; }
+  clearInterval(listTimer);
+  if (es) es.close();
+  code = c; state = null; view = 'table';
+  try { history.replaceState(null, '', '#mesa-' + c.toLowerCase()); } catch (e) {}
+  render();
+  es = new EventSource('api/mesas/' + c + '/stream?cid=' + encodeURIComponent(cid));
+  es.onmessage = ev => {
+    let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+    if (d.gone) { toast('La mesa fue borrada.'); goHome(); return; }
+    online = new Set(d.online || []);
+    if (d.state && (!state || (d.state.rev || 0) >= (state.rev || 0))) setState(d.state); else render();
+  };
+  es.onerror = () => { /* EventSource se reconecta solo */ };
+}
+
+B = {
+  kind: 'server', showDots: true, canTakeover: true, absoluteTeams: false,
+  seat() { for (let i = 0; i < 4; i++) { const s = state.seats[hk(i)]; if (s && s.cid === cid) return i; } return null; },
+  async act(name, args) {
+    const j = await api('POST', 'api/mesas/' + code + '/act', { cid, action: name, args });
+    if (j.state && (!state || (j.state.rev || 0) >= (state.rev || 0))) { online = new Set(j.online || []); setState(j.state); }
+  },
+  tools() { return `<button class="btn sm" data-act="copy">Mesa <b class="num">${esc(code)}</b></button><button class="btn sm ghost" data-act="lobby">Salir</button>`; },
+  homeHTML() {
+    return `<section class="hero"><h1>Kanastra</h1>
+      <p>La kanastra de la familia, con nuestras reglas. Crea una mesa, comparte el enlace y jueguen cuatro, cada uno desde su celular.</p></section>
+      ${installHTML()}
+      <div class="panels">
+        <div class="panel">
+          <div class="field"><label class="label" for="nombre">Tu nombre en la mesa</label>
+            <input type="text" id="nombre" maxlength="18" autocomplete="nickname" placeholder="Ej: Tía Nadia" value="${esc(myName)}"></div>
+          <button class="btn primary" data-act="create">Crear mesa nueva</button>
+          <div class="field"><label class="label" for="codigo">Entrar con código</label>
+            <div class="row"><input type="text" id="codigo" maxlength="4" autocomplete="off" placeholder="Ej: K7QM" style="text-transform:uppercase"><button class="btn" data-act="joincode">Entrar</button></div></div>
+        </div>
+        <div class="panel"><h2 style="font-size:20px">Mesas abiertas</h2><div class="tables" id="mesas"></div></div>
+      </div>`;
+  },
+  afterHome: renderTables,
+  onKey(e) { if (e.key === 'Enter' && e.target.id === 'codigo') openTable(e.target.value); },
+  handle(a, d) {
+    switch (a) {
+      case 'create':
+        if (!myName.trim()) { toast('Escribe tu nombre primero.'); $('#nombre') && $('#nombre').focus(); return true; }
+        api('POST', 'api/mesas', { cid, name: myName.trim() }).then(j => openTable(j.code), e => toast(e.message));
+        return true;
+      case 'install':
+        if (deferredInstall) { deferredInstall.prompt(); deferredInstall.userChoice.finally(() => { deferredInstall = null; render(); }); }
+        return true;
+      case 'joincode': openTable(($('#codigo') || {}).value); return true;
+      case 'open': openTable(d.code); return true;
+      case 'lobby': goHome(); return true;
+      case 'copy': {
+        const link = location.origin + location.pathname + '#mesa-' + code.toLowerCase();
+        try { navigator.clipboard.writeText(link).then(() => toast('Enlace de la mesa copiado.'), () => toast('Código de la mesa: ' + code)); }
+        catch (e) { toast('Código de la mesa: ' + code); }
+        return true;
+      }
+      case 'sit':
+        if (!myName.trim()) { toast('Escribe tu nombre primero.'); $('#nombre') && $('#nombre').focus(); return true; }
+        act('sit', { seat: Number(d.seat), name: myName.trim() }); return true;
+      case 'stand': act('stand', {}); return true;
+      case 'start': act('start'); return true;
+      case 'askdelete':
+        layer = { type: 'confirm', text: `¿Borrar la mesa ${code}? Se pierde el marcador.`, run: () => api('DELETE', 'api/mesas/' + code + '?cid=' + encodeURIComponent(cid)).then(goHome, e => toast(e.message)) };
+        renderLayer(); return true;
+      case 'asktake': {
+        const i = Number(d.seat);
+        layer = { type: 'confirm', text: `¿Tomar el asiento de ${seatName(state, i)}? Hazlo solo si eres esa persona y cambiaste de dispositivo.`, run: () => act('takeover', { seat: i }) };
+        renderLayer(); return true;
+      }
+    }
+    return false;
+  }
+};
+
+
+/* ----- App instalable ----- */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (view === 'home') render(); });
+window.addEventListener('appinstalled', () => { deferredInstall = null; toast('Kanastra quedó instalada en este celular.'); if (view === 'home') render(); });
+const isStandalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function installHTML() {
+  if (isStandalone()) return '';
+  let body;
+  if (deferredInstall) body = `<p class="muted small" style="margin:0">Tenla en tu pantalla de inicio como cualquier app, sin tienda de apps.</p><button class="btn gold" data-act="install">Instalar Kanastra</button>`;
+  else if (isIOS()) body = `<p class="small" style="margin:0">En iPhone: abre esta página en <b>Safari</b>, toca <b>Compartir</b> (el cuadrado con la flecha hacia arriba) y elige <b>Agregar a inicio</b>.</p>`;
+  else body = `<p class="small" style="margin:0">Abre el menú del navegador (los tres puntos ⋮) y elige <b>Instalar app</b> o <b>Agregar a la pantalla principal</b>.</p>`;
+  return `<div class="panel" style="margin-bottom:16px"><h2 style="font-size:18px">Instálala en tu celular</h2>${body}</div>`;
+}
+if ('serviceWorker' in navigator) window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+// Mantiene despierto el servidor gratuito mientras hay una partida abierta.
+setInterval(() => { if (view === 'table') fetch('api/ping', { cache: 'no-store' }).catch(() => {}); }, 4 * 60 * 1000);
+
+(function bootServer() {
+  const h = (location.hash || '').replace('#', '').toUpperCase();
+  if (/^MESA-[A-Z0-9]{4}$/.test(h)) { view = 'table'; openTable(h.slice(5)); }
+  else goHome();
+})();
+
+</script>
+</body>
+</html>
