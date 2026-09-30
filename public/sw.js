@@ -1,5 +1,5 @@
 // Kanastra: guarda la app en el celular para que abra rápido. Las jugadas siempre van al servidor.
-const CACHE = 'kanastra-v2';
+const CACHE = 'kanastra-v5';
 const SHELL = ['./', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
