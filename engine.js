@@ -2,6 +2,7 @@
 const SUITS = ['♠','♥','♦','♣'];
 const SUIT_NAMES = ['picas','corazones','diamantes','tréboles'];
 const WIN = 5000, OPEN = 80, HAND = 15;
+const BOT_NAMES = ['Bot Samir', 'Bot Yasmin', 'Bot Tony', 'Bot Rania'];
 class GameErr extends Error {}
 const fail = m => { throw new GameErr(m); };
 
@@ -31,8 +32,13 @@ const tk = t => 't' + t;
 
 /* Analiza un conjunto de cartas como combinación. forced = 'run' | 'group' | undefined */
 function analyze(cards, forced) {
+  if (forced === 'wild') return { err: 'A la kanastra de comodines no se le añaden cartas.' };
   if (cards.length < 3) return { err: 'Una combinación necesita al menos 3 cartas.' };
   const wilds = cards.filter(isWild), nat = cards.filter(c => !isWild(c));
+  if (!nat.length) {
+    if (wilds.length === 7 && !forced) return { type: 'wild', clean: true };
+    return { err: 'La kanastra de comodines se baja completa: 7 comodines juntos.' };
+  }
   if (wilds.length > 1) return { err: 'Máximo un comodín por combinación.' };
   if (nat.some(c => rank(c) === 3)) return { err: 'Los 3 no se bajan en combinaciones.' };
   if (nat.length < 2) return { err: 'Necesitas al menos 2 cartas naturales.' };
@@ -54,6 +60,7 @@ function analyze(cards, forced) {
 }
 function describe(a) {
   if (a.err) return a.err;
+  if (a.type === 'wild') return 'Kanastra de comodines · +1.500';
   const kind = a.type === 'group'
     ? 'Grupo de ' + (RANK_LABEL[a.rank] || a.rank)
     : 'Escalera de ' + SUIT_NAMES[a.suit];
@@ -61,6 +68,7 @@ function describe(a) {
 }
 /* Orden para mostrar una combinación */
 function arrange(m) {
+  if (m.type === 'wild') return m.cards.slice().sort((x, y) => (isJoker(y) ? 1 : 0) - (isJoker(x) ? 1 : 0));
   const a = analyze(m.cards, m.type);
   if (a.err) return m.cards.slice();
   const w = m.cards.find(isWild), nat = m.cards.filter(c => !isWild(c));
@@ -72,7 +80,13 @@ function arrange(m) {
   return out;
 }
 const isKanastra = m => m.cards.length >= 7;
-const meldClean = m => !!analyze(m.cards, m.type).clean;
+const meldClean = m => m.type === 'wild' || !!analyze(m.cards, m.type).clean;
+// Darbi: solo después de que los cuatro jugaron su primer turno, y con kanastra limpia (o la de comodines).
+const lapDone = s => (s.roundTurn || 0) >= 4;
+const darbiAllowed = (s, t) => lapDone(s) && teamHasClean(s, t);
+const darbiMsg = (s, t) => !teamHasClean(s, t)
+  ? 'Para quedarte sin cartas (darbi) tu pareja necesita una kanastra limpia.'
+  : 'El darbi se habilita cuando los cuatro hayan jugado su primer turno.';
 const teamHasClean = (s, t) => s.melds[tk(t)].some(m => isKanastra(m) && meldClean(m));
 const teamKanastras = (s, t) => s.melds[tk(t)].filter(isKanastra).length;
 
@@ -137,16 +151,19 @@ function deal(s) {
   // un comodín no puede quedar como última carta del mazo
   let g = 0;
   while (isWild(s.stock[0]) && g++ < 30) { const c = s.stock.shift(); s.stock.splice(middle(s.stock), 0, c); }
-  // se inicia el piso con una carta natural (no comodín, no 3)
-  g = 0; let top;
-  while (g++ < 60) {
+  // se inicia el piso: un 3 rojo se aparta y se voltea otra; cualquier otra carta se queda (un 3 negro bloquea)
+  s.dead = [];
+  let top = s.stock.pop();
+  while (isRed3(top) && s.stock.length) {
+    s.dead.push(top);
+    log(s, 'Salió un 3 rojo al iniciar el piso: se aparta y se voltea otra.');
     top = s.stock.pop();
-    if (!isWild(top) && rank(top) !== 3) break;
-    s.stock.splice(middle(s.stock), 0, top);
   }
   s.pile = [top];
+  if (isBlack3(top)) log(s, 'El piso empieza con un 3 negro: el primero debe robar.');
   s.turn = s.starter; s.phase = 'draw'; s.turnNo = (s.turnNo || 0) + 1;
-  s.flags = { mustBlack3: false, lastTurn: false };
+  s.roundTurn = 0;
+  s.flags = { mustBlack3: false, lastTurn: false, noDiscard: false };
   s.status = 'playing';
   s.lastResult = null;
 }
@@ -158,7 +175,7 @@ function drawOne(s, seat) {
     if (isRed3(c)) {
       s.red3[tk(teamOf(seat))].push(c);
       log(s, `${seatName(s, seat)} sacó un 3 rojo y lo apartó.`);
-      if (!s.stock.length) return 'red3last';
+      if (!s.stock.length) { s.flags.lastTurn = true; return 'red3last'; }
       continue;
     }
     s.hands[hk(seat)].push(c);
@@ -175,8 +192,20 @@ function assertTurn(s, seat, phase) {
 
 function afterMeld(s, seat) {
   const t = teamOf(seat), n = s.hands[hk(seat)].length;
-  if (n <= 1 && !teamHasClean(s, t)) fail('Para quedarte sin cartas (darbi) tu pareja necesita una kanastra limpia.');
+  const limit = s.flags.noDiscard ? 0 : 1; // en el cierre final no se tira, así que puede quedar con 1
+  if (n <= limit && !darbiAllowed(s, t)) fail(darbiMsg(s, t));
   if (n === 0) endRound(s, 'darbi', seat);
+}
+const canBuyPhase = s => s.phase === 'draw' || s.phase === 'final';
+function takePile(s, seat, top) {
+  const t = teamOf(seat), final = s.phase === 'final';
+  const rest = s.pile; s.pile = [];
+  s.hands[hk(seat)].push(...rest);
+  s.flags.mustBlack3 = !final && rest.some(isBlack3);
+  s.phase = 'play';
+  if (final) { s.flags.noDiscard = true; log(s, `${seatName(s, seat)} compró el último piso: baja lo que pueda y termina la ronda.`); }
+  else log(s, `${seatName(s, seat)} compró el piso con ${cardName(top)} (${rest.length} cartas más).`);
+  return t;
 }
 
 function validateNewMelds(list) {
@@ -209,6 +238,20 @@ const ACTIONS = {
     s.seats[hk(seat)] = { cid, name: cur.name };
     log(s, `${cur.name} volvió a la mesa desde otro dispositivo.`);
   },
+  addbot(s, _seat, { seat }) {
+    if (s.status !== 'lobby') fail('La partida ya empezó.');
+    if (!(seat >= 0 && seat <= 3)) fail('Asiento no válido.');
+    if (s.seats[hk(seat)]) fail('Ese asiento ya está ocupado.');
+    const used = new Set([0, 1, 2, 3].map(i => s.seats[hk(i)] && s.seats[hk(i)].name));
+    const name = BOT_NAMES.find(n => !used.has(n)) || ('Bot ' + (seat + 1));
+    s.seats[hk(seat)] = { cid: 'bot' + seat + '-' + Math.floor(Math.random() * 1e6), name, bot: true };
+  },
+  removebot(s, _seat, { seat }) {
+    if (s.status !== 'lobby') fail('La partida ya empezó.');
+    const cur = s.seats[hk(seat)];
+    if (!cur || !cur.bot) fail('Ese asiento no tiene un bot.');
+    s.seats[hk(seat)] = null;
+  },
   start(s) {
     if (s.status !== 'lobby') fail('La partida ya empezó.');
     for (let i = 0; i < 4; i++) if (!s.seats[hk(i)]) fail('Faltan jugadores: se necesitan 4.');
@@ -225,18 +268,17 @@ const ACTIONS = {
     deal(s);
   },
   draw(s, seat) {
+    if (s.phase === 'final' && s.turn === seat) fail('Ya no hay mazo: compra el piso o termina la ronda.');
     assertTurn(s, seat, 'draw');
     const r = drawOne(s, seat);
-    if (r === 'red3last' || r === 'empty') {
-      log(s, 'Se acabó el mazo con un 3 rojo: termina la ronda.');
-      endRound(s, 'mazo', seat);
-      return;
-    }
+    if (r === 'empty') { log(s, 'No quedan cartas en el mazo: termina la ronda.'); endRound(s, 'mazo', seat); return; }
     s.phase = 'play';
-    log(s, `${seatName(s, seat)} robó del mazo.`);
+    if (r === 'red3last') log(s, `Era la última carta del mazo: ${seatName(s, seat)} juega sin reponer y debe tirar.`);
+    else log(s, `${seatName(s, seat)} robó del mazo.`);
   },
   buy(s, seat, { cards, draft }) {
-    assertTurn(s, seat, 'draw');
+    assertTurn(s, seat);
+    if (!canBuyPhase(s)) fail('Ya tomaste carta este turno.');
     if (!s.pile.length) fail('El piso está vacío.');
     const top = s.pile[s.pile.length - 1];
     if (isBlack3(top)) fail('El piso está bloqueado con un 3 negro.');
@@ -245,6 +287,7 @@ const ACTIONS = {
     const combo = cards.concat([top]);
     const a = analyze(combo);
     if (a.err) fail('Con la carta del piso: ' + a.err);
+    if (a.type === 'wild') fail('La kanastra de comodines se baja completa desde la mano.');
     const extra = s.opened[tk(t)] ? [] : validateNewMelds(draft || []);
     const all = cards.concat(...extra.map(m => m.cards));
     if (!s.opened[tk(t)]) {
@@ -255,14 +298,43 @@ const ACTIONS = {
     s.pile.pop();
     s.melds[tk(t)].push({ id: nextMeldId(s), type: a.type, cards: combo });
     for (const m of extra) s.melds[tk(t)].push({ id: nextMeldId(s), type: m.type, cards: m.cards });
-    const rest = s.pile; s.pile = [];
-    const b3 = rest.filter(isBlack3).length;
-    s.hands[hk(seat)].push(...rest);
-    s.flags.mustBlack3 = b3 > 0;
     if (!s.opened[tk(t)]) { s.opened[tk(t)] = true; log(s, `${seatName(s, seat)} abrió para su pareja.`); }
-    s.phase = 'play';
-    log(s, `${seatName(s, seat)} compró el piso con ${cardName(top)} (${rest.length} cartas más).`);
+    takePile(s, seat, top);
     afterMeld(s, seat);
+  },
+  // Comprar el piso añadiendo SOLO la carta de arriba a una combinación ya bajada por la pareja
+  buyadd(s, seat, { meldId }) {
+    assertTurn(s, seat);
+    if (!canBuyPhase(s)) fail('Ya tomaste carta este turno.');
+    if (!s.pile.length) fail('El piso está vacío.');
+    const top = s.pile[s.pile.length - 1];
+    if (isBlack3(top)) fail('El piso está bloqueado con un 3 negro.');
+    const t = teamOf(seat);
+    if (!s.opened[tk(t)]) fail('Tu pareja aún no ha abierto: para abrir necesitas 80 puntos con cartas de tu mano.');
+    const m = s.melds[tk(t)].find(x => x.id === meldId);
+    if (!m) fail('Esa combinación no es de tu pareja.');
+    const a = analyze(m.cards.concat([top]), m.type);
+    if (a.err) fail('La carta del piso no va en esa combinación: ' + a.err);
+    const wasKan = isKanastra(m), wasClean = wasKan && meldClean(m);
+    s.pile.pop();
+    m.cards = m.cards.concat([top]);
+    if (!wasKan && isKanastra(m)) log(s, a.clean ? '¡Kanastra limpia!' : '¡Kanastra sucia!');
+    else if (wasClean && !a.clean) log(s, 'La kanastra quedó sucia.');
+    takePile(s, seat, top);
+    afterMeld(s, seat);
+  },
+  // Cierre: el siguiente al que robó la última carta no puede o no quiere comprar el piso
+  pass(s, seat) {
+    assertTurn(s, seat);
+    if (s.phase !== 'final') fail('Solo se puede terminar así cuando se acabó el mazo.');
+    log(s, `${seatName(s, seat)} no compró el piso: termina la ronda.`);
+    endRound(s, 'mazo', seat);
+  },
+  finish(s, seat) {
+    assertTurn(s, seat, 'play');
+    if (!s.flags.noDiscard) fail('Termina tu turno tirando una carta.');
+    log(s, `${seatName(s, seat)} terminó de bajar: fin de la ronda.`);
+    endRound(s, 'mazo', seat);
   },
   meld(s, seat, { melds }) {
     assertTurn(s, seat, 'play');
@@ -285,6 +357,7 @@ const ACTIONS = {
     if (!s.opened[tk(t)]) fail('Tu pareja aún no ha abierto.');
     const m = s.melds[tk(t)].find(x => x.id === meldId);
     if (!m) fail('Esa combinación no es de tu pareja.');
+    if (m.type === 'wild') fail('A la kanastra de comodines no se le añaden cartas.');
     if (!cards || !cards.length) fail('Selecciona cartas para añadir.');
     const before = isKanastra(m) ? meldClean(m) : null;
     const a = analyze(m.cards.concat(cards), m.type);
@@ -299,32 +372,46 @@ const ACTIONS = {
   },
   discard(s, seat, { card }) {
     assertTurn(s, seat, 'play');
+    if (s.flags.noDiscard) fail('En este cierre no se tira: baja lo que puedas y toca Terminar ronda.');
     const h = s.hands[hk(seat)];
     if (!h.includes(card)) fail('Esa carta no está en tu mano.');
     if (s.flags.mustBlack3 && h.some(isBlack3) && !isBlack3(card)) fail('Compraste un piso con 3 negro: debes tirar un 3 negro.');
     const t = teamOf(seat);
-    if (h.length === 1 && !teamHasClean(s, t)) fail('Para hacer darbi tu pareja necesita una kanastra limpia.');
+    // Caso raro: robó un 3 rojo como última carta y le queda una sola; puede tirarla y la ronda termina por mazo agotado.
+    const lastCardOut = h.length === 1 && !darbiAllowed(s, t) && s.flags.lastTurn;
+    if (h.length === 1 && !darbiAllowed(s, t) && !lastCardOut) fail(darbiMsg(s, t));
     takeFromHand(s, seat, [card]);
     s.pile.push(card);
     log(s, `${seatName(s, seat)} tiró ${cardName(card)}${isBlack3(card) ? ' y bloqueó el piso' : ''}.`);
-    if (!s.hands[hk(seat)].length) { endRound(s, 'darbi', seat); return; }
-    if (s.flags.lastTurn) { log(s, 'Se acabó el mazo: termina la ronda.'); endRound(s, 'mazo', seat); return; }
-    s.turn = (seat + 1) % 4; s.phase = 'draw'; s.turnNo = (s.turnNo || 0) + 1;
-    s.flags = { mustBlack3: false, lastTurn: false };
+    if (!s.hands[hk(seat)].length) { endRound(s, lastCardOut ? 'mazo' : 'darbi', seat); return; }
+    s.roundTurn = (s.roundTurn || 0) + 1;
+    const next = (seat + 1) % 4;
+    if (s.flags.lastTurn) {
+      if (isBlack3(card)) { log(s, 'Se acabó el mazo y el piso quedó bloqueado: termina la ronda.'); endRound(s, 'mazo', seat); return; }
+      s.turn = next; s.phase = 'final'; s.turnNo = (s.turnNo || 0) + 1;
+      s.flags = { mustBlack3: false, lastTurn: false, noDiscard: false };
+      log(s, `Se acabó el mazo: ${seatName(s, next)} puede comprar el piso; si no, termina la ronda.`);
+      return;
+    }
+    s.turn = next; s.phase = 'draw'; s.turnNo = (s.turnNo || 0) + 1;
+    s.flags = { mustBlack3: false, lastTurn: false, noDiscard: false };
   }
 };
 
 function scoreTeam(s, t, reason, seat) {
   const melds = s.melds[tk(t)];
   const mesa = melds.reduce((x, m) => x + sum(m.cards), 0);
-  let limpias = 0, sucias = 0;
-  for (const m of melds) if (isKanastra(m)) meldClean(m) ? limpias++ : sucias++;
+  let limpias = 0, sucias = 0, esp = 0;
+  for (const m of melds) {
+    if (!isKanastra(m)) continue;
+    if (m.type === 'wild') esp++; else if (meldClean(m)) limpias++; else sucias++;
+  }
   const r3 = s.red3[tk(t)].length;
-  const tres = (limpias + sucias) > 0 ? r3 * 100 : 0;
+  const tres = (limpias + sucias + esp) > 0 ? r3 * 100 : 0;
   const darbi = reason === 'darbi' && teamOf(seat) === t ? 100 : 0;
   const mano = reason === 'darbi' ? sum(s.hands[hk(t)]) + sum(s.hands[hk(t + 2)]) : 0;
-  const total = mesa + limpias * 500 + sucias * 300 + tres + darbi - mano;
-  return { mesa, limpias, sucias, r3, tres, darbi, mano, total };
+  const total = mesa + limpias * 500 + sucias * 300 + esp * 1500 + tres + darbi - mano;
+  return { mesa, limpias, sucias, esp, r3, tres, darbi, mano, total };
 }
 
 function endRound(s, reason, seat) {
@@ -340,4 +427,4 @@ function endRound(s, reason, seat) {
   s.phase = 'done';
 }
 
-if (typeof module !== 'undefined' && typeof window === 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, rank, suit, val, sum, cardName, GameErr, teamHasClean };
+if (typeof module !== 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, isJoker, rank, suit, runIdx, val, sum, cardName, GameErr, teamHasClean, darbiAllowed, isKanastra, meldClean, hk, tk, teamOf, OPEN, BOT_NAMES };

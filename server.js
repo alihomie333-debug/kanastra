@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const E = require('./engine.js');
+const { botPlan } = require('./bots.js');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'mesas.json');
@@ -49,8 +50,53 @@ function onlineFor(code, cid) {
   const s = mesas[code]; if (!s) return [];
   const ids = new Set([...(streams[code] || [])].map(x => x.cid));
   const out = [];
-  for (let i = 0; i < 4; i++) { const x = s.seats['s' + i]; if (x && ids.has(x.cid)) out.push(x.cid === cid ? cid : 'otro' + i); }
+  for (let i = 0; i < 4; i++) { const x = s.seats['s' + i]; if (x && (ids.has(x.cid) || x.bot)) out.push(x.cid === cid ? cid : 'otro' + i); }
   return out;
+}
+
+/* ---------- bots: juegan en el servidor cuando es su turno ---------- */
+const BOT_SPEED = Number(process.env.BOT_SPEED || 1); // 1 = normal; menor = más rápido (pruebas)
+const sleep = ms => new Promise(r => setTimeout(r, ms * BOT_SPEED));
+const botTimers = {};
+const botTurn = s => { const x = s && s.status === 'playing' && s.seats['s' + s.turn]; return !!(x && x.bot); };
+function commit(code, next) {
+  next.rev = (next.rev || 0) + 1; next.updated = Date.now();
+  mesas[code] = next; save(); broadcast(code);
+}
+function scheduleBots(code, delay) {
+  if (botTimers[code] || !botTurn(mesas[code])) return;
+  botTimers[code] = setTimeout(() => runBot(code).catch(e => { console.error('bot:', e); delete botTimers[code]; }), (delay || 900) * BOT_SPEED);
+}
+// Si el plan no sirve, una jugada mínima para que la mesa nunca se quede trabada.
+function fallback(s) {
+  const seat = s.turn, h = s.hands['s' + seat];
+  const tries = s.phase === 'final' ? [['pass', {}]]
+    : s.phase === 'draw' ? [['draw', {}]]
+    : s.flags && s.flags.noDiscard ? [['finish', {}]]
+    : h.map(c => ['discard', { card: c }]);
+  for (const [a, args] of tries) {
+    const n = JSON.parse(JSON.stringify(s));
+    try { E.ACTIONS[a](n, seat, args); return [[a, args]]; } catch (e) { if (!(e instanceof E.GameErr)) throw e; }
+  }
+  return [];
+}
+async function runBot(code) {
+  const s0 = mesas[code];
+  if (!botTurn(s0)) { delete botTimers[code]; return; }
+  const seat = s0.turn, cid = s0.seats['s' + seat].cid;
+  let plan = botPlan(s0);
+  if (!plan.length) plan = fallback(s0);
+  if (!plan.length) { console.error('Bot sin jugada en', code); delete botTimers[code]; return; }
+  for (const [name, args] of plan) {
+    const cur = mesas[code];
+    if (!cur || cur.status !== 'playing' || cur.turn !== seat || !cur.seats['s' + seat] || cur.seats['s' + seat].cid !== cid) break;
+    const next = JSON.parse(JSON.stringify(cur));
+    try { E.ACTIONS[name](next, seat, args); } catch (e) { if (e instanceof E.GameErr) break; throw e; }
+    commit(code, next);
+    await sleep(name === 'discard' ? 450 : 800);
+  }
+  delete botTimers[code];
+  scheduleBots(code, 700);
 }
 function payload(code, cid) { return { state: redact(mesas[code], cid), online: onlineFor(code, cid) }; }
 function broadcast(code) {
@@ -97,7 +143,7 @@ const server = http.createServer(async (req, res) => {
 
     // lista de mesas
     if (req.method === 'GET' && parts.length === 2) {
-      const list = Object.values(mesas).sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 30).map(summary);
+      const list = Object.values(mesas).filter(m => !m.solo).sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 30).map(summary);
       return send(res, 200, { mesas: list });
     }
     // crear mesa
@@ -107,8 +153,15 @@ const server = http.createServer(async (req, res) => {
       if (!cid || !name) return send(res, 400, { error: 'Escribe tu nombre primero.' });
       let c;
       do { c = Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join(''); } while (mesas[c]);
-      mesas[c] = E.newTable(c, cid, name);
+      const t = E.newTable(c, cid, name);
+      if (body.bots) { // partida rápida: tú y 3 bots
+        for (let i = 1; i < 4; i++) E.ACTIONS.addbot(t, 0, { seat: i });
+        t.solo = true;
+        E.ACTIONS.start(t);
+      }
+      mesas[c] = t;
       save();
+      scheduleBots(c, 1500);
       return send(res, 200, { code: c });
     }
     const s = mesas[code];
@@ -144,11 +197,13 @@ const server = http.createServer(async (req, res) => {
       next.rev = (next.rev || 0) + 1; next.updated = Date.now();
       mesas[code] = next;
       save(); broadcast(code);
+      scheduleBots(code);
       return send(res, 200, payload(code, cid));
     }
     // borrar mesa (solo quien la creó)
     if (req.method === 'DELETE' && parts.length === 3) {
       if (cleanCid(url.searchParams.get('cid')) !== s.host) return send(res, 403, { error: 'Solo quien creó la mesa puede borrarla.' });
+      clearTimeout(botTimers[code]); delete botTimers[code];
       delete mesas[code]; save(); broadcast(code);
       return send(res, 200, { ok: true });
     }
@@ -167,4 +222,7 @@ setInterval(() => {
   if (n) save();
 }, 3600000);
 
-server.listen(PORT, () => console.log(`Kanastra lista en http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Kanastra lista en http://localhost:${PORT}`);
+  for (const c in mesas) scheduleBots(c, 2000); // si el servidor se reinició en el turno de un bot
+});
