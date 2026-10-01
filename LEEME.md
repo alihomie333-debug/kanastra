@@ -49,6 +49,14 @@ Manda el enlace por WhatsApp. Cada persona hace esto una sola vez:
 
 Desde ese momento abren la Kanastra desde su ícono, como cualquier app.
 
+## ¿Ya lo habías subido? Cómo actualizarlo
+
+Sube encima los archivos que cambiaron, cada uno en su carpeta:
+
+1. En la **página principal** del repositorio: toca **Add file** → **Upload files**, arrastra `engine.js`, `server.js` y `bots.js` y toca **Commit changes**.
+2. Entra a la carpeta **`public`**: toca **Add file** → **Upload files**, arrastra `index.html` y `sw.js` y toca **Commit changes**.
+3. En 2 o 3 minutos Render publica la versión nueva sola.
+
 ## Cómo se juega
 
 1. Una persona escribe su nombre y toca **Crear mesa nueva**. Sale un código de 4 letras.
@@ -56,8 +64,16 @@ Desde ese momento abren la Kanastra desde su ícono, como cualquier app.
 3. Cada uno entra, escribe su nombre y se sienta. Los asientos 1 y 3 son pareja contra los asientos 2 y 4.
 4. Con los cuatro sentados, cualquiera toca **Repartir cartas**.
 
+**Con bots:** en el inicio, **Jugar contra 3 bots** arma una partida tuya contra la máquina. En la sala de espera, cualquier asiento vacío tiene **Poner bot** para completar la mesa si faltan jugadores.
+
+**Gestos en la mesa:**
+- Toca una carta para elegirla. Desliza el dedo de lado sobre varias para elegirlas juntas.
+- Arrastra cartas hacia arriba: al **piso** para tirar o comprar, a una **combinación tuya** para añadir, o a **tu zona** para bajar una nueva.
+- Toca el **mazo** para robar.
+- El sonido se prende y se apaga con el botón del parlante.
+
 Cada celular ve solo sus propias cartas. Si alguien cambia de celular a mitad de la partida, entra a la mesa y toca **Soy (su nombre)**.
-Las reglas y cómo resolvimos las dudas están en el botón **Reglas**.
+Las reglas completas de la familia están en el botón **Reglas**.
 
 ## Bueno saber (plan gratis de Render)
 
