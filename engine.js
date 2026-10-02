@@ -3,6 +3,9 @@ const SUITS = ['♠','♥','♦','♣'];
 const SUIT_NAMES = ['picas','corazones','diamantes','tréboles'];
 const WIN = 5000, OPEN = 80, HAND = 15;
 const BOT_NAMES = ['Bot Samir', 'Bot Yasmin', 'Bot Tony', 'Bot Rania'];
+// Reacciones permitidas en la mesa (emoticonos y frases)
+const REACTIONS = ['😂', '😮', '👏', '😎', '🔥', '😡', '🙏', '❤️', '🤔', '😴',
+  '¡Wow!', 'Jajajaja', 'Buen intento', '¡Más rápido!', '¡Buena suerte!', '¡Bien jugado!', '¡Uy!', '¡Cuidado!'];
 class GameErr extends Error {}
 const fail = m => { throw new GameErr(m); };
 
@@ -427,4 +430,4 @@ function endRound(s, reason, seat) {
   s.phase = 'done';
 }
 
-if (typeof module !== 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, isJoker, rank, suit, runIdx, val, sum, cardName, GameErr, teamHasClean, darbiAllowed, isKanastra, meldClean, hk, tk, teamOf, OPEN, BOT_NAMES };
+if (typeof module !== 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, isJoker, rank, suit, runIdx, val, sum, cardName, GameErr, teamHasClean, darbiAllowed, isKanastra, meldClean, hk, tk, teamOf, OPEN, BOT_NAMES, REACTIONS };

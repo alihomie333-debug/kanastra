@@ -3,27 +3,45 @@ const E = require('./engine.js');
 const { ACTIONS, analyze, isWild, isBlack3, rank, suit, runIdx, val, sum, GameErr, hk, tk, teamOf, OPEN, isKanastra } = E;
 const clone = x => JSON.parse(JSON.stringify(x));
 
+// Busca combinaciones en la mano. Prioridad: escaleras (A K Q J 10…) antes que grupos repetidos (9 9 9).
 function findMelds(hand, allowWild) {
   const out = [], used = new Set();
   const nat = hand.filter(c => !isWild(c) && rank(c) !== 3);
+  // escaleras naturales, las más largas primero
+  const runsOf = () => {
+    const found = [];
+    for (let su = 0; su < 4; su++) {
+      const seen = {};
+      for (const c of nat) if (!used.has(c) && suit(c) === su && seen[runIdx(rank(c))] === undefined) seen[runIdx(rank(c))] = c;
+      let run = [];
+      const flush = () => { if (run.length >= 3) found.push(run.slice()); run = []; };
+      for (let i = 0; i <= 10; i++) { if (seen[i] !== undefined) run.push(seen[i]); else flush(); }
+      flush();
+    }
+    return found.sort((a, b) => b.length - a.length);
+  };
+  for (const r of runsOf()) { out.push(r); r.forEach(c => used.add(c)); }
+  // grupos del mismo número con lo que no se usó en escaleras
   const byRank = {};
-  for (const c of nat) (byRank[rank(c)] = byRank[rank(c)] || []).push(c);
+  for (const c of nat) if (!used.has(c)) (byRank[rank(c)] = byRank[rank(c)] || []).push(c);
   for (const r in byRank) if (byRank[r].length >= 3) { out.push(byRank[r].slice()); byRank[r].forEach(c => used.add(c)); }
-  for (let su = 0; su < 4; su++) {
-    const seen = {};
-    for (const c of nat) if (!used.has(c) && suit(c) === su && seen[runIdx(rank(c))] === undefined) seen[runIdx(rank(c))] = c;
-    let run = [];
-    const flush = () => { if (run.length >= 3) { out.push(run.slice()); run.forEach(c => used.add(c)); } run = []; };
-    for (let i = 0; i <= 10; i++) { if (seen[i] !== undefined) run.push(seen[i]); else flush(); }
-    flush();
-  }
   if (allowWild) {
     const w = hand.find(isWild);
     if (w !== undefined) {
-      for (const r in byRank) {
-        const left = byRank[r].filter(c => !used.has(c));
-        if (left.length === 2) { out.push(left.concat([w])); break; }
+      let made = null;
+      // primero una escalera con comodín: dos cartas del mismo palo seguidas o con un hueco
+      for (let su = 0; su < 4 && !made; su++) {
+        const cs = nat.filter(c => !used.has(c) && suit(c) === su).sort((a, b) => runIdx(rank(a)) - runIdx(rank(b)));
+        for (let i = 0; i + 1 < cs.length && !made; i++) {
+          const d = runIdx(rank(cs[i + 1])) - runIdx(rank(cs[i]));
+          if ((d === 1 || d === 2) && !analyze([cs[i], cs[i + 1], w]).err) made = [cs[i], cs[i + 1], w];
+        }
       }
+      if (!made) for (const r in byRank) {
+        const left = byRank[r].filter(c => !used.has(c));
+        if (left.length === 2) { made = left.concat([w]); break; }
+      }
+      if (made) out.push(made);
     }
   }
   const wilds = hand.filter(isWild);
@@ -38,8 +56,8 @@ function discardScore(c, hand, s, seat) {
   let u = 0;
   for (const o of hand) {
     if (o === c || isWild(o) || rank(o) === 3) continue;
-    if (rank(o) === rank(c)) u += 4;
-    if (suit(o) === suit(c)) { const d = Math.abs(runIdx(rank(o)) - runIdx(rank(c))); if (d === 1) u += 3; else if (d === 2) u += 1.5; }
+    if (rank(o) === rank(c)) u += 2.5;
+    if (suit(o) === suit(c)) { const d = Math.abs(runIdx(rank(o)) - runIdx(rank(c))); if (d === 1) u += 4.5; else if (d === 2) u += 2.5; }
   }
   const opp = s.melds[tk(1 - teamOf(seat))];
   if (opp.some(m => m.type === 'group' && m.cards.some(x => !isWild(x) && rank(x) === rank(c)))) u += 5;
@@ -62,7 +80,8 @@ function botPlan(state0) {
     let bought = false;
     const top = s.pile[s.pile.length - 1];
     if (s.pile.length && !isBlack3(top) && s.opened[tk(t)]) {
-      for (const m of s.melds[tk(t)]) if (m.type !== 'wild' && tryStep('buyadd', { meldId: m.id })) { bought = true; break; }
+      const order = s.melds[tk(t)].filter(m => m.type !== 'wild').sort((a, b) => (a.type === 'run' ? 0 : 1) - (b.type === 'run' ? 0 : 1));
+      for (const m of order) if (tryStep('buyadd', { meldId: m.id })) { bought = true; break; }
     }
     if (!bought && s.pile.length && !isBlack3(top)) {
       const h = s.hands[hk(seat)];
@@ -70,6 +89,7 @@ function botPlan(state0) {
       const opts = [];
       for (let i = 0; i < nat.length; i++) for (let j = i + 1; j < nat.length; j++)
         if (!analyze([nat[i], nat[j], top]).err) opts.push([nat[i], nat[j]]);
+      opts.sort((a, b) => (analyze(a.concat([top])).type === 'run' ? 0 : 1) - (analyze(b.concat([top])).type === 'run' ? 0 : 1));
       if (!opts.length && s.pile.length >= 5 && !isWild(top)) {
         const w = h.find(isWild);
         if (w !== undefined) for (const n of nat) if (!analyze([n, w, top]).err) { opts.push([n, w]); break; }
@@ -99,8 +119,9 @@ function botPlan(state0) {
     }
     const special = h.filter(isWild);
     if (special.length >= 7 && tryStep('meld', { melds: [special.slice(0, 7)] })) { progress = true; continue; }
+    const runsFirst = s.melds[tk(t)].filter(m => m.type !== 'wild').sort((a, b) => (a.type === 'run' ? 0 : 1) - (b.type === 'run' ? 0 : 1));
     outer: for (const c of h.filter(c => !isWild(c))) {
-      for (const m of s.melds[tk(t)]) if (m.type !== 'wild' && tryStep('add', { meldId: m.id, cards: [c] })) { progress = true; break outer; }
+      for (const m of runsFirst) if (tryStep('add', { meldId: m.id, cards: [c] })) { progress = true; break outer; }
     }
     if (progress) continue;
     for (const m of findMelds(h, false)) if (tryStep('meld', { melds: [m] })) { progress = true; break; }

@@ -60,8 +60,54 @@ const sleep = ms => new Promise(r => setTimeout(r, ms * BOT_SPEED));
 const botTimers = {};
 const botTurn = s => { const x = s && s.status === 'playing' && s.seats['s' + s.turn]; return !!(x && x.bot); };
 function commit(code, next) {
+  const prev = mesas[code];
   next.rev = (next.rev || 0) + 1; next.updated = Date.now();
   mesas[code] = next; save(); broadcast(code);
+  botReactions(code, prev, next);
+}
+
+/* ---------- reacciones (no se guardan: solo se envían a quien está en la mesa) ---------- */
+const lastReact = {};
+function sendReact(code, seat, r) {
+  const msg = 'data: ' + JSON.stringify({ react: { seat, r, id: Date.now() + Math.random() } }) + '\n\n';
+  for (const st of streams[code] || []) st.res.write(msg);
+}
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function botSay(code, team, options, chance, delay) {
+  const s = mesas[code]; if (!s || Math.random() > chance) return;
+  const bots = [0, 1, 2, 3].filter(i => s.seats['s' + i] && s.seats['s' + i].bot && (team == null || i % 2 === team));
+  if (!bots.length) return;
+  const seat = pick(bots);
+  setTimeout(() => sendReact(code, seat, pick(options)), (delay || 700) + Math.random() * 700);
+}
+// Los bots comentan de vez en cuando lo que pasa en la mesa
+function botReactions(code, prev, next) {
+  if (!prev || !next || !prev.melds || !next.melds) return;
+  for (const t of [0, 1]) {
+    const before = {}; prev.melds['t' + t].forEach(m => { before[m.id] = m.cards.length; });
+    if (next.melds['t' + t].some(m => (before[m.id] || 0) < 7 && m.cards.length >= 7)) {
+      botSay(code, t, ['😎', '🔥', '¡Bien jugado!'], 0.45);
+      botSay(code, 1 - t, ['😮', '¡Wow!', '¡Uy!'], 0.35, 1400);
+    }
+  }
+  if (prev.pile && next.pile && prev.pile.length >= 8 && next.pile.length === 0 && next.status === 'playing') botSay(code, 1 - (prev.turn % 2), ['😮', '¡Wow!'], 0.4);
+  if (prev.status === 'playing' && next.status !== 'playing' && next.lastResult) {
+    const r = next.lastResult;
+    if (r.reason === 'darbi') { botSay(code, r.by % 2, ['Jajajaja', '😂', '😎'], 0.6); botSay(code, 1 - (r.by % 2), ['Buen intento', '😡', '🙏'], 0.5, 1500); }
+  }
+  if (next.status === 'playing' && (prev.status !== 'playing' || prev.round !== next.round)) botSay(code, null, ['¡Buena suerte!', '🙏', '😎'], 0.35, 1200);
+}
+// Si un jugador se demora mucho, algún bot le pide que juegue más rápido (una vez por turno)
+const slowTimers = {};
+function watchSlow(code) {
+  clearTimeout(slowTimers[code]);
+  const s = mesas[code];
+  if (!s || s.status !== 'playing' || !s.seats['s' + s.turn] || s.seats['s' + s.turn].bot) return;
+  const turnNo = s.turnNo;
+  slowTimers[code] = setTimeout(() => {
+    const c = mesas[code];
+    if (c && c.status === 'playing' && c.turnNo === turnNo) botSay(code, null, ['¡Más rápido!', '😴'], 0.8, 0);
+  }, 45000);
 }
 function scheduleBots(code, delay) {
   if (botTimers[code] || !botTurn(mesas[code])) return;
@@ -96,7 +142,7 @@ async function runBot(code) {
     await sleep(name === 'discard' ? 450 : 800);
   }
   delete botTimers[code];
-  scheduleBots(code, 700);
+  scheduleBots(code, 700); watchSlow(code);
 }
 function payload(code, cid) { return { state: redact(mesas[code], cid), online: onlineFor(code, cid) }; }
 function broadcast(code) {
@@ -181,6 +227,18 @@ const server = http.createServer(async (req, res) => {
       req.on('close', () => { clearInterval(ping); streams[code] && streams[code].delete(entry); broadcast(code); });
       return;
     }
+    // reacción (emoticono o frase de la lista)
+    if (req.method === 'POST' && parts[3] === 'react') {
+      const body = await readBody(req);
+      const cid = cleanCid(body.cid), seat = cid ? seatOf(s, cid) : null;
+      if (seat == null) return send(res, 403, { error: 'Solo los jugadores sentados pueden reaccionar.' });
+      if (!E.REACTIONS.includes(body.r)) return send(res, 400, { error: 'Reacción no válida.' });
+      const now = Date.now();
+      if (now - (lastReact[cid] || 0) < 1200) return send(res, 429, { error: 'Espera un momento.' });
+      lastReact[cid] = now;
+      sendReact(code, seat, body.r);
+      return send(res, 200, { ok: true });
+    }
     // jugada
     if (req.method === 'POST' && parts[3] === 'act') {
       const body = await readBody(req);
@@ -194,16 +252,18 @@ const server = http.createServer(async (req, res) => {
       if (!['sit', 'stand', 'takeover'].includes(action) && seat == null) return send(res, 403, { error: 'No tienes asiento en esta mesa.' });
       try { E.ACTIONS[action](next, seat, args); }
       catch (e) { if (e instanceof E.GameErr) return send(res, 400, { error: e.message }); throw e; }
+      const prevState = mesas[code];
       next.rev = (next.rev || 0) + 1; next.updated = Date.now();
       mesas[code] = next;
       save(); broadcast(code);
-      scheduleBots(code);
+      botReactions(code, prevState, next);
+      scheduleBots(code); watchSlow(code);
       return send(res, 200, payload(code, cid));
     }
     // borrar mesa (solo quien la creó)
     if (req.method === 'DELETE' && parts.length === 3) {
       if (cleanCid(url.searchParams.get('cid')) !== s.host) return send(res, 403, { error: 'Solo quien creó la mesa puede borrarla.' });
-      clearTimeout(botTimers[code]); delete botTimers[code];
+      clearTimeout(botTimers[code]); delete botTimers[code]; clearTimeout(slowTimers[code]);
       delete mesas[code]; save(); broadcast(code);
       return send(res, 200, { ok: true });
     }
