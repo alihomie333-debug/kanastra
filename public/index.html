@@ -346,6 +346,9 @@ table.res tr.tot td { font-family: var(--serif); font-size: 20px; color: var(--b
   .bar { padding: 6px 0 2px; }
   .icon-btn { width: 38px; height: 38px; }
   .plaque b { font-size: 17px; }
+  .bar { gap: 6px; } .bar .icon-btn { width: 34px; height: 34px; }
+  .plaque { padding: 4px 8px 5px; } .plaque span { font-size: 9px; letter-spacing: .06em; }
+  .rchip small { font-size: 8.5px; letter-spacing: .06em; }
   .felt { margin: 12px 10px 10px; padding: 6px 6px 8px; gap: 3px; border-radius: 24px; }
   .medal { width: 38px; height: 38px; font-size: 16px; }
   .seat-top .seat { gap: 8px; }
@@ -409,6 +412,23 @@ table.res tr.tot td { font-family: var(--serif); font-size: 20px; color: var(--b
 .felt.dense .center { padding-bottom: 13px; }
 .felt.dense .cnt { font-size: 10px; bottom: -15px; }
 
+/* reacciones */
+.rbubble { position: fixed; z-index: 66; pointer-events: none; transform: translate(-50%, -100%); padding: 7px 13px; border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf0, var(--ivory-2)); color: #2a1a08; font: 700 15px/1.1 var(--body); white-space: nowrap;
+  box-shadow: 0 0 0 1.5px var(--brass), 0 8px 18px rgba(0,0,0,.5); animation: bubble 2.8s cubic-bezier(.2,.9,.3,1) both; }
+.rbubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; translate: -50% 0; border: 7px solid transparent; border-top-color: var(--ivory-2); border-bottom: 0; }
+.rbubble.emo { background: none; box-shadow: none; font-size: 40px; padding: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+.rbubble.emo::after { display: none; }
+@keyframes bubble { 0% { opacity: 0; scale: .3; } 9% { opacity: 1; scale: 1.15; } 15% { scale: 1; } 78% { opacity: 1; translate: 0 -8px; } 100% { opacity: 0; translate: 0 -22px; } }
+.overlay.react { place-items: end center; background: rgba(12,7,3,.35); -webkit-backdrop-filter: none; backdrop-filter: none; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.reactsheet { max-width: 440px; gap: 12px; padding: 14px; }
+.emogrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.emo-btn { font-size: 30px; line-height: 1; padding: 8px 0; border-radius: 12px; border: 1px solid rgba(201,162,85,.25); background: rgba(0,0,0,.2); cursor: pointer; transition: transform .1s; }
+.emo-btn:active { transform: scale(.9); }
+.phrases { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.phrase-btn { font: 600 14px var(--body); color: #2a1a08; padding: 8px 12px; border-radius: 999px; border: 1px solid #f3dca5; background: linear-gradient(180deg, #f0d596, #c9a255); cursor: pointer; }
+.phrase-btn:active { transform: scale(.95); }
+
 /* celular acostado: mesa a la izquierda, mano a la derecha */
 @media (orientation: landscape) and (max-height: 540px) {
   .stage { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 4px;
@@ -456,6 +476,9 @@ const SUITS = ['♠','♥','♦','♣'];
 const SUIT_NAMES = ['picas','corazones','diamantes','tréboles'];
 const WIN = 5000, OPEN = 80, HAND = 15;
 const BOT_NAMES = ['Bot Samir', 'Bot Yasmin', 'Bot Tony', 'Bot Rania'];
+// Reacciones permitidas en la mesa (emoticonos y frases)
+const REACTIONS = ['😂', '😮', '👏', '😎', '🔥', '😡', '🙏', '❤️', '🤔', '😴',
+  '¡Wow!', 'Jajajaja', 'Buen intento', '¡Más rápido!', '¡Buena suerte!', '¡Bien jugado!', '¡Uy!', '¡Cuidado!'];
 class GameErr extends Error {}
 const fail = m => { throw new GameErr(m); };
 
@@ -880,7 +903,7 @@ function endRound(s, reason, seat) {
   s.phase = 'done';
 }
 
-if (typeof module !== 'undefined' && typeof window === 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, isJoker, rank, suit, runIdx, val, sum, cardName, GameErr, teamHasClean, darbiAllowed, isKanastra, meldClean, hk, tk, teamOf, OPEN, BOT_NAMES };
+if (typeof module !== 'undefined' && typeof window === 'undefined') module.exports = { ACTIONS, analyze, arrange, deal, newTable, endRound, scoreTeam, isWild, isBlack3, isRed3, isJoker, rank, suit, runIdx, val, sum, cardName, GameErr, teamHasClean, darbiAllowed, isKanastra, meldClean, hk, tk, teamOf, OPEN, BOT_NAMES, REACTIONS };
 
 /* ===== Sonido: todo sintetizado, sin archivos. Cuerdas tipo laúd en escala Hijaz ===== */
 const Sound = (() => {
@@ -956,6 +979,7 @@ const Sound = (() => {
       case 'darbi': seq(t, [H[0], H[1], H[2], H[3], H[4], H[5], H[4], H[3], H[2], H[1], H[0]], 0.09, 0.28); [H[0] / 2, H[0], H[4]].forEach(n => pluck(n, t + 1.05, 0.22)); break;
       case 'win': seq(t + 0.3, [H[0], H[2], H[4], H[7], H[4], H[7]], 0.14, 0.3); [H[0] / 2, H[4] / 2, H[0]].forEach(n => pluck(n, t + 1.2, 0.25)); break;
       case 'error': pluck(110, t, 0.3); pluck(116.5, t + 0.01, 0.2); break;
+      case 'pop': pluck(H[7] * 2, t, 0.16); noise(t, 0.03, 'highpass', 5000, 0.7, 0.06); break;
     }
   }
   return {
@@ -1003,6 +1027,7 @@ let feltAdj = 0, fitting = false; // ajuste aprendido para que la mesa quepa sin
 const ICON = {
   menu: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
   sound: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+  smile: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.2c.9 1.3 2.1 1.9 3.5 1.9s2.6-.6 3.5-1.9"/><path d="M9 9.6h.01M15 9.6h.01" stroke-width="2.6"/></svg>',
   mute: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   sort: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/></svg>',
   close: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
@@ -1166,6 +1191,7 @@ function topBar() {
     <button class="icon-btn" data-act="menu" aria-label="Menú">${ICON.menu}</button>
     <div class="plaques">${plaque(usT, 'us')}${plaque(themT, 'them')}</div>
     <div class="rchip">${state.round}<small>ronda</small></div>
+    ${m != null ? `<button class="icon-btn" data-act="reactmenu" aria-label="Reacciones">${ICON.smile}</button>` : ''}
     <button class="icon-btn" data-act="mute" aria-label="${Sound.muted ? 'Activar sonido' : 'Silenciar'}">${Sound.muted ? ICON.mute : ICON.sound}</button>
   </header>`;
 }
@@ -1475,6 +1501,12 @@ function renderLayer() {
     if (!state || !state.lastResult) { layer = null; el.innerHTML = ''; return; }
     el.innerHTML = `<div class="overlay" data-act="closelayer"><div class="sheet" role="dialog" aria-modal="true" aria-label="Resultado">${resultHTML()}</div></div>`;
     setTimeout(() => $$('#layer [data-count]').forEach(e => countUp(e, 900)), 560);
+  } else if (layer.type === 'react') {
+    const emos = REACTIONS.filter(isEmoji), phrases = REACTIONS.filter(r => !isEmoji(r));
+    el.innerHTML = `<div class="overlay react" data-act="closelayer"><div class="sheet reactsheet" role="dialog" aria-modal="true" aria-label="Reacciones">
+      <div class="emogrid">${emos.map(r => `<button class="emo-btn" data-act="sendreact" data-r="${esc(r)}" aria-label="Enviar ${esc(r)}">${esc(r)}</button>`).join('')}</div>
+      <div class="phrases">${phrases.map(r => `<button class="phrase-btn" data-act="sendreact" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div>
+    </div></div>`;
   } else if (layer.type === 'menu') {
     el.innerHTML = `<div class="overlay" data-act="closelayer"><aside class="drawer" role="dialog" aria-modal="true" aria-label="Menú">
       <div class="sheethead"><div class="brand"><span class="ar">كناسترا</span><span>KANASTRA</span></div><button class="icon-btn" data-act="closelayer" aria-label="Cerrar">${ICON.close}</button></div>
@@ -1653,6 +1685,30 @@ function runFx(fx) {
   if (fx.roundEnd) setTimeout(() => { layer = { type: 'result' }; renderLayer(); }, 1400);
 }
 
+/* ---------- reacciones ---------- */
+const isEmoji = r => !/[A-Za-zÁÉÍÓÚáéíóúñ]/.test(r);
+const lastBubble = {};
+function showReaction({ seat, r }) {
+  if (view !== 'table' || !state || typeof r !== 'string' || !REACTIONS.includes(r)) return;
+  let rect = null;
+  if (seat === mySeat()) { const h = $('#hand') || $('.handbar'); if (h) { const b = h.getBoundingClientRect(); rect = { x: b.left + b.width / 2, y: b.top + 6 }; } }
+  else { const a = document.querySelector(`[data-anchor="seat${seat}"] .medal`) || document.querySelector(`[data-anchor="seat${seat}"]`); if (a) { const b = a.getBoundingClientRect(); rect = { x: b.left + b.width / 2, y: b.top - 4 }; } }
+  if (!rect) rect = { x: innerWidth / 2, y: innerHeight * 0.4 };
+  if (lastBubble[seat]) lastBubble[seat].remove();
+  const d = document.createElement('div');
+  d.className = 'rbubble' + (isEmoji(r) ? ' emo' : '');
+  d.textContent = r;
+  d.style.top = Math.max(50, rect.y) + 'px';
+  d.style.left = rect.x + 'px';
+  document.body.appendChild(d);
+  // que la burbuja no se salga por los lados de la pantalla
+  const w = d.offsetWidth;
+  d.style.left = Math.max(w / 2 + 8, Math.min(innerWidth - w / 2 - 8, rect.x)) + 'px';
+  lastBubble[seat] = d;
+  Sound.play('pop');
+  setTimeout(() => { d.remove(); if (lastBubble[seat] === d) delete lastBubble[seat]; }, 2900);
+}
+
 /* ---------- gestos en la mano ---------- */
 let G = null;
 function bindHand() {
@@ -1812,6 +1868,8 @@ function handle(a, d) {
   switch (a) {
     case 'rules': layer = { type: 'rules' }; renderLayer(); break;
     case 'menu': layer = { type: 'menu' }; renderLayer(); break;
+    case 'reactmenu': layer = { type: 'react' }; renderLayer(); break;
+    case 'sendreact': layer = null; renderLayer(); if (B.react) B.react(d.r); break;
     case 'showresult': layer = { type: 'result' }; renderLayer(); break;
     case 'closelayer': layer = null; renderLayer(); break;
     case 'doconfirm': { const l = layer; layer = null; renderLayer(); if (l && l.run) l.run(); break; }
@@ -1910,6 +1968,7 @@ async function openTable(c) {
   es.onmessage = ev => {
     let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
     if (d.gone) { toast('La mesa fue borrada.'); goHome(); return; }
+    if (d.react) { showReaction(d.react); return; }
     online = new Set(d.online || []);
     if (d.state && (!state || (d.state.rev || 0) >= (state.rev || 0))) setState(d.state); else render();
   };
@@ -1918,6 +1977,7 @@ async function openTable(c) {
 
 B = {
   kind: 'server', showDots: true, canTakeover: true, absoluteTeams: false,
+  react(r) { api('POST', 'api/mesas/' + code + '/react', { cid, r }).catch(e => { if (e.status !== 429) toast(e.message); }); },
   seat() { for (let i = 0; i < 4; i++) { const s = state.seats[hk(i)]; if (s && s.cid === cid) return i; } return null; },
   async act(name, args) {
     const j = await api('POST', 'api/mesas/' + code + '/act', { cid, action: name, args });
